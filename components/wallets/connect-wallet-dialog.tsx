@@ -20,7 +20,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 interface ConnectWalletDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  userId: string;
+  userId?: string;
   onWalletAdded: (wallet: Wallet) => void;
 }
 
@@ -52,9 +52,26 @@ export function ConnectWalletDialog({
       return;
     }
 
-    const supabase = createClient();
-
     try {
+      if (!userId) {
+        const now = new Date().toISOString();
+        onWalletAdded({
+          id: crypto.randomUUID(),
+          user_id: "demo-user",
+          address,
+          chain,
+          is_primary: false,
+          created_at: now,
+          updated_at: now,
+        });
+        setAddress("");
+        setChain("ethereum");
+        onOpenChange(false);
+        return;
+      }
+
+      const supabase = createClient();
+
       // Check if wallet already exists
       const { data: existing } = await supabase
         .from("wallets")

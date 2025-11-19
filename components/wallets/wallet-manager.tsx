@@ -11,22 +11,31 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from 'next/navigation';
 
 interface WalletManagerProps {
-  userId: string;
-  initialWallets: WalletType[];
+  userId?: string;
+  initialWallets?: WalletType[];
 }
 
-export function WalletManager({ userId, initialWallets }: WalletManagerProps) {
+export function WalletManager({ userId, initialWallets = [] }: WalletManagerProps) {
   const [wallets, setWallets] = useState<WalletType[]>(initialWallets);
   const [dialogOpen, setDialogOpen] = useState(false);
   const router = useRouter();
 
   const handleWalletAdded = (newWallet: WalletType) => {
-    setWallets([newWallet, ...wallets]);
+    const hasPrimary = wallets.some((wallet) => wallet.is_primary);
+    const walletToAdd = hasPrimary ? newWallet : { ...newWallet, is_primary: true };
+    setWallets([walletToAdd, ...wallets]);
     setDialogOpen(false);
-    router.refresh();
+    if (userId) {
+      router.refresh();
+    }
   };
 
   const handleDeleteWallet = async (walletId: string) => {
+    if (!userId) {
+      setWallets(wallets.filter((w) => w.id !== walletId));
+      return;
+    }
+
     const supabase = createClient();
     const { error } = await supabase
       .from("wallets")
@@ -40,6 +49,14 @@ export function WalletManager({ userId, initialWallets }: WalletManagerProps) {
   };
 
   const handleSetPrimary = async (walletId: string) => {
+    if (!userId) {
+      setWallets(wallets.map((w) => ({
+        ...w,
+        is_primary: w.id === walletId
+      })));
+      return;
+    }
+
     const supabase = createClient();
     
     // Set all to false first

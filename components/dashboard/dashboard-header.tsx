@@ -1,5 +1,6 @@
 "use client";
 
+import { useModal } from "connectkit";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,6 +20,7 @@ export function DashboardHeader() {
   const router = useRouter();
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
+  const { openProfile } = useModal();
 
   const handleDisconnect = async () => {
     disconnect();
@@ -81,11 +83,9 @@ export function DashboardHeader() {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Wallet</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/wallets" className="cursor-pointer">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Manage Wallets
-                </Link>
+              <DropdownMenuItem onClick={openProfile}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Manage Wallets
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
