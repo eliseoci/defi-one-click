@@ -43,6 +43,9 @@ export function DashboardHeader() {
           <Link href="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
             Dashboard
           </Link>
+          <Link href="/strategies" className="text-sm font-medium transition-colors hover:text-primary">
+            Strategies
+          </Link>
           <Link href="/execute" className="text-sm font-medium transition-colors hover:text-primary">
             Execute
           </Link>
@@ -106,6 +109,9 @@ export function DashboardHeader() {
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
                 <Link href="/dashboard" className="cursor-pointer">Dashboard</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/strategies" className="cursor-pointer">Strategies</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/execute" className="cursor-pointer">Execute</Link>
