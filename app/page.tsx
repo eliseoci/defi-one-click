@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { ConnectWalletButton } from "@/components/wallets/connect-wallet-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Wallet, TrendingUp, Zap, Shield } from 'lucide-react';
 
@@ -13,12 +14,7 @@ export default function HomePage() {
             <Zap className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">DeFi Hub</span>
           </div>
-          <Link href="/dashboard">
-            <Button>
-              <Wallet className="mr-2 h-4 w-4" />
-              Connect Wallet
-            </Button>
-          </Link>
+          <ConnectWalletButton />
         </div>
       </header>
 
@@ -114,12 +110,7 @@ export default function HomePage() {
           <p className="mb-8 text-lg text-muted-foreground">
             Connect your wallet and start managing your multichain portfolio in seconds
           </p>
-          <Link href="/dashboard">
-            <Button size="lg">
-              <Wallet className="mr-2 h-4 w-4" />
-              Connect Wallet Now
-            </Button>
-          </Link>
+          <ConnectWalletButton size="lg" className="w-full sm:w-auto justify-center" />
         </div>
       </section>
     </div>
