@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ConnectWalletButton } from "@/components/wallets/connect-wallet-button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Wallet, TrendingUp, Zap, Shield } from 'lucide-react';
+import { ArrowRight, TrendingUp, Zap, Shield, Target } from 'lucide-react';
 
 export default function HomePage() {
   const { isConnected } = useAccount();
@@ -36,23 +36,17 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-20 md:py-32">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight md:text-6xl">
-            Manage Your Multichain DeFi Portfolio in{" "}
-            <span className="text-primary">One Step</span>
+            Discover & Deploy{" "}
+            <span className="text-primary">DeFi Strategies</span>
           </h1>
           <p className="mb-8 text-pretty text-lg text-muted-foreground md:text-xl">
-            Bridge, swap, and stake across Ethereum, Arbitrum, Optimism, Polygon, Base, and Solana
-            with a single transaction. No more multiple steps, no more hassle.
+            Access curated DeFi strategies across multiple chains. Deposit with any token and let smart routing handle the rest.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Link href="/dashboard">
+            <Link href="/strategies">
               <Button size="lg" className="w-full sm:w-auto">
-                Get Started
+                Explore Strategies
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/analytics">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                View Demo
               </Button>
             </Link>
           </div>
@@ -63,17 +57,17 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-20">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-12 text-center text-3xl font-bold">
-            Everything You Need to Manage DeFi
+            Optimized DeFi Strategies
           </h2>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <Wallet className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Multichain Portfolio</CardTitle>
+                <Target className="mb-2 h-8 w-8 text-primary" />
+                <CardTitle>Curated Strategies</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Track all your assets across 6 chains in one unified dashboard
+                  Hand-picked yield strategies across top DeFi protocols and chains
                 </CardDescription>
               </CardContent>
             </Card>
@@ -81,11 +75,11 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <Zap className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>One-Step Execution</CardTitle>
+                <CardTitle>Quick Deposits</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Bridge, swap, and stake in a single transaction with optimized routing
+                  Deposit with any token - automatic swaps happen seamlessly under the hood
                 </CardDescription>
               </CardContent>
             </Card>
@@ -93,23 +87,11 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <TrendingUp className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Real-Time Analytics</CardTitle>
+                <CardTitle>Real APY Tracking</CardTitle>
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Monitor portfolio performance with live charts and detailed metrics
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Shield className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Transaction Simulation</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Preview outcomes and fees before executing any transaction
+                  Monitor live APY rates and historical performance for informed decisions
                 </CardDescription>
               </CardContent>
             </Card>
@@ -120,9 +102,9 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="container mx-auto px-4 py-20">
         <div className="mx-auto max-w-3xl rounded-lg border bg-card p-8 text-center md:p-12">
-          <h2 className="mb-4 text-3xl font-bold">Ready to Simplify Your DeFi?</h2>
+          <h2 className="mb-4 text-3xl font-bold">Ready to Start Earning?</h2>
           <p className="mb-8 text-lg text-muted-foreground">
-            Connect your wallet and start managing your multichain portfolio in seconds
+            Connect your wallet and explore high-yield DeFi strategies
           </p>
           <ConnectWalletButton size="lg" className="w-full sm:w-auto justify-center" />
         </div>
