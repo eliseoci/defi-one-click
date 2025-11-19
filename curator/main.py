@@ -59,10 +59,12 @@ def fetch_defillama_protocols() -> List[Dict]:
     """
     Fetch protocols data from DefiLlama API and transform to our format.
     """
+    print("\n[STEP 1] Starting to fetch protocols data from DefiLlama...")
     try:
         response = requests.get(DEFILLAMA_PROTOCOLS_URL, timeout=10)
         response.raise_for_status()
         protocols = response.json()
+        print(f"[STEP 1] Received {len(protocols)} protocols from API")
         
         # Transform API response to match our data structure
         transformed_protocols = []
@@ -92,10 +94,11 @@ def fetch_defillama_protocols() -> List[Dict]:
             }
             transformed_protocols.append(transformed_protocol)
         
+        print(f"[STEP 1] ✓ Completed: Transformed {len(transformed_protocols)} valid protocols")
         return transformed_protocols
     except requests.exceptions.RequestException as e:
         # Log error and return empty list or fallback to mock data
-        print(f"Error fetching DefiLlama protocols data: {e}")
+        print(f"[STEP 1] ✗ Error fetching DefiLlama protocols data: {e}")
         return []
 
 
@@ -103,16 +106,20 @@ def fetch_defillama_pools() -> List[Dict]:
     """
     Fetch pools data from DefiLlama yields API.
     """
+    print("\n[STEP 2] Starting to fetch pools data from DefiLlama yields API...")
     try:
         response = requests.get(DEFILLAMA_POOLS_URL, timeout=10)
         response.raise_for_status()
         data = response.json()
         
         if data.get("status") == "success" and "data" in data:
-            return data["data"]
+            pools = data["data"]
+            print(f"[STEP 2] ✓ Completed: Received {len(pools)} pools from API")
+            return pools
+        print("[STEP 2] ✗ Warning: API response status was not 'success'")
         return []
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching DefiLlama pools data: {e}")
+        print(f"[STEP 2] ✗ Error fetching DefiLlama pools data: {e}")
         return []
 
 
@@ -250,27 +257,48 @@ def scores():
     protocols and pools data from DefiLlama APIs.
     Fetches fresh data from both APIs on each request.
     """
+    print("\n" + "="*60)
+    print("🔍 /scores endpoint called - Starting security score calculation")
+    print("="*60)
+    
     # Fetch data from both APIs
     protocols = fetch_defillama_protocols()
     pools = fetch_defillama_pools()
     
     if not protocols:
+        print("\n[ERROR] Failed to fetch protocols data - aborting score calculation")
         return jsonify({
             "error": "Failed to fetch protocols data",
             "data": []
         }), 500
     
     # Calculate security score for each protocol
+    print(f"\n[STEP 3] Starting to calculate security scores for {len(protocols)} protocols...")
     protocols_with_scores = []
-    for protocol in protocols:
+    total_protocols = len(protocols)
+    
+    for idx, protocol in enumerate(protocols, 1):
         security_score = calculate_security_score(protocol, pools)
         
         protocol_with_score = protocol.copy()
         protocol_with_score["securityScore"] = security_score
         protocols_with_scores.append(protocol_with_score)
+        
+        # Show progress every 50 protocols or for the last one
+        if idx % 50 == 0 or idx == total_protocols:
+            print(f"[STEP 3] Progress: Calculated scores for {idx}/{total_protocols} protocols...")
     
     # Sort by security score (highest first)
+    print("[STEP 3] Sorting protocols by security score...")
     protocols_with_scores.sort(key=lambda x: x.get("securityScore", 0), reverse=True)
+    
+    print(f"[STEP 3] ✓ Completed: Calculated security scores for {len(protocols_with_scores)} protocols")
+    print("\n📊 Results Summary:")
+    print(f"   - Total protocols: {len(protocols_with_scores)}")
+    print(f"   - Total pools: {len(pools)}")
+    print(f"   - Highest security score: {protocols_with_scores[0].get('securityScore', 0):.2f} ({protocols_with_scores[0].get('name', 'N/A')})")
+    print(f"   - Lowest security score: {protocols_with_scores[-1].get('securityScore', 0):.2f} ({protocols_with_scores[-1].get('name', 'N/A')})")
+    print("="*60 + "\n")
     
     return jsonify({
         "data": protocols_with_scores,
