@@ -1,7 +1,10 @@
 from flask import Flask, jsonify
+import requests
+from typing import List, Dict
 
 app = Flask(__name__)
 
+# Keep mock data for testing/debugging purposes
 MOCK_MARKETS = [
     {
         "id": "2269",
@@ -47,13 +50,66 @@ MOCK_MARKETS = [
     },
 ]
 
+DEFILLAMA_API_URL = "https://api.llama.fi/protocols"
+
+
+def fetch_defillama_protocols() -> List[Dict]:
+    """
+    Fetch protocols data from DefiLlama API and transform to our format.
+    """
+    try:
+        response = requests.get(DEFILLAMA_API_URL, timeout=10)
+        response.raise_for_status()
+        protocols = response.json()
+        
+        # Transform API response to match our data structure
+        transformed_protocols = []
+        for protocol in protocols:
+            # Filter out protocols with null TVL or invalid data
+            if protocol.get("tvl") is None:
+                continue
+                
+            # Filter out chainTvls entries that end with "-borrowed" or are not relevant
+            chain_tvls = {}
+            if protocol.get("chainTvls"):
+                for chain, tvl in protocol["chainTvls"].items():
+                    # Skip borrowed amounts and other non-standard entries
+                    if not chain.endswith("-borrowed") and tvl is not None and tvl > 0:
+                        chain_tvls[chain] = tvl
+            
+            transformed_protocol = {
+                "id": str(protocol.get("id", "")),
+                "name": protocol.get("name", ""),
+                "symbol": protocol.get("symbol", "-"),
+                "category": protocol.get("category", ""),
+                "chains": protocol.get("chains", []),
+                "tvl": protocol.get("tvl", 0),
+                "chainTvls": chain_tvls,
+                "change_1d": protocol.get("change_1d"),
+                "change_7d": protocol.get("change_7d"),
+            }
+            transformed_protocols.append(transformed_protocol)
+        
+        return transformed_protocols
+    except requests.exceptions.RequestException as e:
+        # Log error and return empty list or fallback to mock data
+        print(f"Error fetching DefiLlama data: {e}")
+        return []
+
 
 @app.route("/markets", methods=["GET"])
 def markets():
     """
-    Return mocked crypto protocol metrics.
+    Return crypto protocol metrics from DefiLlama API.
+    Falls back to mock data if API request fails.
     """
-    return jsonify({"data": MOCK_MARKETS})
+    protocols = fetch_defillama_protocols()
+    
+    # Fallback to mock data if API fetch fails
+    if not protocols:
+        return jsonify({"data": MOCK_MARKETS, "source": "mock"})
+    
+    return jsonify({"data": protocols, "source": "defillama"})
 
 
 if __name__ == "__main__":
