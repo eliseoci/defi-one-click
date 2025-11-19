@@ -39,13 +39,8 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
     <>
       <Card className="overflow-hidden">
         {/* Table Header */}
-        <div className="grid grid-cols-[1fr_100px_100px_120px_100px_120px_80px_100px] gap-4 p-4 border-b bg-muted/50 text-xs font-medium text-muted-foreground uppercase">
+        <div className="grid grid-cols-[1fr_100px_120px_120px_80px_100px] gap-4 p-4 border-b bg-muted/50 text-xs font-medium text-muted-foreground uppercase">
           <div>Strategy</div>
-          <div className="text-right">
-            <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
-              Wallet <ArrowUpDown className="ml-1 h-3 w-3" />
-            </Button>
-          </div>
           <div className="text-right">
             <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
               Deposited <ArrowUpDown className="ml-1 h-3 w-3" />
@@ -54,11 +49,6 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
           <div className="text-right">
             <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
               Current APY <ArrowUpDown className="ml-1 h-3 w-3" />
-            </Button>
-          </div>
-          <div className="text-right">
-            <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
-              Daily <ArrowUpDown className="ml-1 h-3 w-3" />
             </Button>
           </div>
           <div className="text-right">
@@ -80,7 +70,7 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
             <div
               key={strategy.id}
               onClick={() => handleRowClick(strategy.id)}
-              className="grid grid-cols-[1fr_100px_100px_120px_100px_120px_80px_100px] gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+              className="grid grid-cols-[1fr_100px_120px_120px_80px_100px] gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
             >
               {/* Strategy Name & Info */}
               <div className="flex items-center gap-3 min-w-0">
@@ -106,18 +96,8 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                       {strategy.protocol}
                       {strategy.protocolType && ` (${strategy.protocolType})`}
                     </span>
-                    {strategy.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Wallet */}
-              <div className="text-right text-sm font-medium">
-                {strategy.deposited}
               </div>
 
               {/* Deposited */}
@@ -127,14 +107,9 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
 
               {/* Current APY */}
               <div className="text-right">
-                <div className="text-sm font-bold text-green-500">
+                <div className="text-sm font-bold text-foreground">
                   {strategy.currentApy.toFixed(2)}%
                 </div>
-              </div>
-
-              {/* Daily */}
-              <div className="text-right text-sm">
-                {strategy.dailyYield.toFixed(4)}%
               </div>
 
               {/* TVL */}
