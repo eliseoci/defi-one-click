@@ -69,15 +69,15 @@ export function StrategiesFilters({
   const totalActiveFilters = selectedChains.length + (selectedCategory !== 'all' ? 1 : 0);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-3 md:space-y-4">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 md:flex-wrap">
         {/* Chains Filter */}
         <Popover open={isChainPopoverOpen} onOpenChange={setIsChainPopoverOpen}>
           <PopoverTrigger asChild>
             <Button
               variant={selectedChains.length > 0 ? "default" : "outline"}
               size="sm"
-              className="gap-2"
+              className="gap-2 shrink-0"
             >
               <span>Chains</span>
               {selectedChains.length > 0 && (
@@ -116,10 +116,10 @@ export function StrategiesFilters({
             variant={selectedCategory === category.id ? "default" : "outline"}
             size="sm"
             onClick={() => onCategoryChange(category.id)}
-            className="gap-2"
+            className="gap-2 shrink-0"
           >
             <span>{category.icon}</span>
-            <span>{category.label}</span>
+            <span className="hidden sm:inline">{category.label}</span>
             {category.badge && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 🔥
@@ -129,9 +129,9 @@ export function StrategiesFilters({
         ))}
         
         {totalActiveFilters > 0 && (
-          <Button variant="outline" size="sm" className="gap-2" onClick={clearAllFilters}>
+          <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={clearAllFilters}>
             <SlidersHorizontal className="h-4 w-4" />
-            <span>Clear All</span>
+            <span className="hidden sm:inline">Clear All</span>
             <Badge variant="secondary" className="h-5 px-1.5 text-xs">
               {totalActiveFilters}
             </Badge>
@@ -146,7 +146,7 @@ export function StrategiesFilters({
           placeholder="Search by asset name"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-10"
+          className="pl-10 h-10 md:h-9"
         />
       </div>
     </div>
