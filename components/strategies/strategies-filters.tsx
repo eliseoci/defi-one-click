@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
+import { Search, ChevronDown, Check } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   Popover,
@@ -11,6 +11,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface StrategiesFiltersProps {
   selectedCategory: string;
@@ -18,20 +20,6 @@ interface StrategiesFiltersProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
-
-const categories = [
-  { id: 'all', label: 'All', icon: '📊' },
-  { id: 'saved', label: 'Saved', icon: '⭐' },
-  { id: 'positions', label: 'My Positions', icon: '💼' },
-  { id: 'boosts', label: 'Boosts', icon: '🚀', badge: true },
-  { id: 'stablecoin', label: 'Stablecoins', icon: '💵' },
-  { id: 'bluechip', label: 'Blue Chips', icon: '💎' },
-  { id: 'meme', label: 'Memes', icon: '🎭' },
-  { id: 'single', label: 'Single', icon: '🎯' },
-  { id: 'lp', label: 'LP', icon: '🔄' },
-  { id: 'clm', label: 'CLM', icon: '📈' },
-  { id: 'vault', label: 'Vaults', icon: '🏦' },
-];
 
 const chains = [
   { id: 'ethereum', name: 'Ethereum' },
@@ -52,6 +40,7 @@ export function StrategiesFilters({
 }: StrategiesFiltersProps) {
   const [selectedChains, setSelectedChains] = useState<string[]>([]);
   const [isChainPopoverOpen, setIsChainPopoverOpen] = useState(false);
+  const [stablecoinsOnly, setStablecoinsOnly] = useState(false);
 
   const toggleChain = (chainId: string) => {
     setSelectedChains(prev =>
@@ -63,10 +52,10 @@ export function StrategiesFilters({
 
   const clearAllFilters = () => {
     setSelectedChains([]);
-    onCategoryChange('all');
+    setStablecoinsOnly(false);
   };
 
-  const totalActiveFilters = selectedChains.length + (selectedCategory !== 'all' ? 1 : 0);
+  const totalActiveFilters = selectedChains.length + (stablecoinsOnly ? 1 : 0);
 
   return (
     <div className="space-y-3 md:space-y-4">
@@ -109,32 +98,23 @@ export function StrategiesFilters({
           </PopoverContent>
         </Popover>
 
-        {/* Category Filters */}
-        {categories.map((category) => (
-          <Button
-            key={category.id}
-            variant={selectedCategory === category.id ? "default" : "outline"}
-            size="sm"
-            onClick={() => onCategoryChange(category.id)}
-            className="gap-2 shrink-0"
+        <div className="flex items-center gap-2 px-3 h-9 rounded-md border border-input bg-background shrink-0">
+          <Checkbox
+            id="stablecoins-only"
+            checked={stablecoinsOnly}
+            onCheckedChange={(checked) => setStablecoinsOnly(checked as boolean)}
+          />
+          <Label
+            htmlFor="stablecoins-only"
+            className="text-sm font-medium cursor-pointer select-none"
           >
-            <span>{category.icon}</span>
-            <span className="hidden sm:inline">{category.label}</span>
-            {category.badge && (
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
-                🔥
-              </Badge>
-            )}
-          </Button>
-        ))}
+            Stablecoins Only
+          </Label>
+        </div>
         
         {totalActiveFilters > 0 && (
-          <Button variant="outline" size="sm" className="gap-2 shrink-0" onClick={clearAllFilters}>
-            <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">Clear All</span>
-            <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-              {totalActiveFilters}
-            </Badge>
+          <Button variant="ghost" size="sm" className="gap-2 shrink-0 text-muted-foreground hover:text-foreground" onClick={clearAllFilters}>
+            <span>Clear All ({totalActiveFilters})</span>
           </Button>
         )}
       </div>
