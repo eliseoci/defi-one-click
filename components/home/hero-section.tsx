@@ -30,23 +30,17 @@ export function HeroSection() {
           </div>
           
           <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight md:text-6xl text-white">
-            Manage Your Multichain DeFi Portfolio in{" "}
-            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">One Step</span>
+            Discover & Deploy{" "}
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">DeFi Strategies</span>
           </h1>
           <p className="mb-8 text-pretty text-lg text-gray-300 md:text-xl">
-            Bridge, swap, and stake across Ethereum, Arbitrum, Optimism, Polygon, Base, and Solana
-            with a single transaction. No more multiple steps, no more hassle.
+            Access curated DeFi strategies across multiple chains. Deposit with any token and let smart routing handle the rest.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Link href="/dashboard">
+            <Link href="/strategies">
               <Button size="lg" className="w-full sm:w-auto">
-                Get Started
+                Explore Strategies
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/analytics">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto bg-purple-900/40 border-purple-400/30 text-white hover:bg-purple-800/50 hover:border-purple-300/40 backdrop-blur-md transition-all">
-                View Demo
               </Button>
             </Link>
           </div>
