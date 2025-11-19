@@ -1,0 +1,63 @@
+@import 'tailwindcss';
+
+@theme inline {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  
+  /* Design tokens for DeFi dashboard */
+  --color-background: #0a0e1a;
+  --color-foreground: #f0f4f8;
+  --color-card: #141824;
+  --color-card-foreground: #f0f4f8;
+  --color-popover: #1a1f2e;
+  --color-popover-foreground: #f0f4f8;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1e293b;
+  --color-secondary-foreground: #f0f4f8;
+  --color-muted: #1e293b;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #6366f1;
+  --color-accent-foreground: #ffffff;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #1e293b;
+  --color-input: #1e293b;
+  --color-ring: #3b82f6;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-chart-1: #3b82f6;
+  --color-chart-2: #8b5cf6;
+  --color-chart-3: #ec4899;
+  --color-chart-4: #10b981;
+  --color-chart-5: #f59e0b;
+  
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
