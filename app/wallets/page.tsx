@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { WalletManager } from "@/components/wallets/wallet-manager";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from 'lucide-react';
 import Link from "next/link";
 import { useAccount } from "wagmi";
 
@@ -23,7 +23,7 @@ export default function WalletsPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href={isConnected && address ? "/dashboard" : "/"}>
+          <Link href={isConnected && address ? "/strategies" : "/"}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back

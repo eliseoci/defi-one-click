@@ -1,15 +1,18 @@
 "use client";
 
-import { type MouseEventHandler } from "react";
+import { type MouseEventHandler, useEffect } from "react";
 import { ConnectKitButton } from "connectkit";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Loader2, Wallet as WalletIcon } from "lucide-react";
+import { Loader2, WalletIcon } from 'lucide-react';
+import { useAccount } from "wagmi";
+import { useRouter } from 'next/navigation';
 
 interface ConnectWalletButtonProps extends ButtonProps {
   label?: string;
   connectedLabel?: string;
   showIcon?: boolean;
+  redirectTo?: string;
 }
 
 export function ConnectWalletButton({
@@ -19,8 +22,19 @@ export function ConnectWalletButton({
   className,
   children,
   onClick,
+  redirectTo,
   ...buttonProps
 }: ConnectWalletButtonProps) {
+  const { isConnected } = useAccount();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isConnected && redirectTo) {
+      console.log("[v0] Wallet connected, redirecting to:", redirectTo);
+      router.push(redirectTo);
+    }
+  }, [isConnected, redirectTo, router]);
+
   const formatAddress = (address?: string | null) => {
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
