@@ -16,7 +16,14 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider>{children}</ConnectKitProvider>
+        <ConnectKitProvider 
+          mode="dark"
+          customTheme={{
+            "--ck-connectbutton-border-radius": "8px",
+          }}
+        >
+          {children}
+        </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
