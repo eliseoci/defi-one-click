@@ -1,0 +1,152 @@
+export interface Strategy {
+  id: string;
+  name: string;
+  protocol: string;
+  protocolType: string;
+  tags: string[];
+  currentApy: number;
+  dailyYield: number;
+  tvl: string;
+  tvlNumeric: number;
+  deposited: number;
+  chain: string;
+  tokenIcons: string[];
+  safetyScore: number; // 1-5
+  category: 'stablecoin' | 'bluechip' | 'meme' | 'lp' | 'single' | 'clm' | 'vault';
+  isNew?: boolean;
+  isBoosted?: boolean;
+}
+
+export const mockStrategies: Strategy[] = [
+  {
+    id: '1',
+    name: 'sUSDe-HONEY',
+    protocol: 'KODIAK',
+    protocolType: 'INFRARED',
+    tags: ['VAULT', 'POINTS'],
+    currentApy: 17.87,
+    dailyYield: 0.045,
+    tvl: '$8.09M',
+    tvlNumeric: 8090000,
+    deposited: 0,
+    chain: 'Arbitrum',
+    tokenIcons: ['💲', '🍯'],
+    safetyScore: 4,
+    category: 'vault',
+    isBoosted: true,
+  },
+  {
+    id: '2',
+    name: 'USDe-HONEY',
+    protocol: 'KODIAK',
+    protocolType: 'INFRARED',
+    tags: ['VAULT', 'POINTS'],
+    currentApy: 16.95,
+    dailyYield: 0.0429,
+    tvl: '$4.23M',
+    tvlNumeric: 4230000,
+    deposited: 0,
+    chain: 'Arbitrum',
+    tokenIcons: ['💵', '🍯'],
+    safetyScore: 4,
+    category: 'vault',
+    isBoosted: true,
+  },
+  {
+    id: '3',
+    name: 'frxUSD/msUSD',
+    protocol: 'CURVE',
+    protocolType: '',
+    tags: ['VAULT'],
+    currentApy: 22.32,
+    dailyYield: 0.0552,
+    tvl: '$2.75M',
+    tvlNumeric: 2750000,
+    deposited: 0,
+    chain: 'Ethereum',
+    tokenIcons: ['💰', '💵'],
+    safetyScore: 5,
+    category: 'stablecoin',
+  },
+  {
+    id: '4',
+    name: 'reUSD/sfrxUSD',
+    protocol: 'CURVE',
+    protocolType: 'CONVEX',
+    tags: ['VAULT'],
+    currentApy: 12.09,
+    dailyYield: 0.0313,
+    tvl: '$3.32M',
+    tvlNumeric: 3320000,
+    deposited: 0,
+    chain: 'Ethereum',
+    tokenIcons: ['🔄', '💲'],
+    safetyScore: 5,
+    category: 'stablecoin',
+  },
+  {
+    id: '5',
+    name: 'splUSD 29Jan26',
+    protocol: 'PENDLE',
+    protocolType: 'MAGPIE',
+    tags: ['VAULT'],
+    currentApy: 71.98,
+    dailyYield: 0.1863,
+    tvl: '$269.779',
+    tvlNumeric: 269779,
+    deposited: 0,
+    chain: 'Ethereum',
+    tokenIcons: ['💲'],
+    safetyScore: 3,
+    category: 'single',
+    isNew: true,
+  },
+  {
+    id: '6',
+    name: 'PYUSD/crvUSD',
+    protocol: 'CURVE',
+    protocolType: '',
+    tags: ['VAULT'],
+    currentApy: 2.86,
+    dailyYield: 0.0077,
+    tvl: '$2.81M',
+    tvlNumeric: 2810000,
+    deposited: 0,
+    chain: 'Ethereum',
+    tokenIcons: ['💵', '💱'],
+    safetyScore: 5,
+    category: 'stablecoin',
+  },
+  {
+    id: '7',
+    name: 'ETH-WBTC',
+    protocol: 'UNISWAP',
+    protocolType: 'V3',
+    tags: ['LP', 'CLM'],
+    currentApy: 15.42,
+    dailyYield: 0.0412,
+    tvl: '$125.4M',
+    tvlNumeric: 125400000,
+    deposited: 0,
+    chain: 'Ethereum',
+    tokenIcons: ['⟠', '₿'],
+    safetyScore: 5,
+    category: 'bluechip',
+  },
+  {
+    id: '8',
+    name: 'USDC-USDT',
+    protocol: 'BALANCER',
+    protocolType: '',
+    tags: ['VAULT', 'POINTS'],
+    currentApy: 8.23,
+    dailyYield: 0.0221,
+    tvl: '$45.2M',
+    tvlNumeric: 45200000,
+    deposited: 0,
+    chain: 'Polygon',
+    tokenIcons: ['💵', '💲'],
+    safetyScore: 5,
+    category: 'stablecoin',
+  },
+];
