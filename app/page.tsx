@@ -30,18 +30,14 @@ export default function HomePage() {
             with a single transaction. No more multiple steps, no more hassle.
           </p>
           <div className="flex flex-col gap-4 sm:flex-row sm:justify-center">
-            <Link href="/dashboard">
+            <Link href="/wallets">
               <Button size="lg" className="w-full sm:w-auto">
                 Get Started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/analytics">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                View Demo
-              </Button>
-            </Link>
           </div>
+          {/* </CHANGE> */}
         </div>
       </section>
 
@@ -59,8 +55,9 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Track all your assets across 6 chains in one unified dashboard
+                  Track all your assets across 6 chains in one unified view
                 </CardDescription>
+                {/* </CHANGE> */}
               </CardContent>
             </Card>
 
@@ -79,12 +76,14 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <TrendingUp className="mb-2 h-8 w-8 text-primary" />
-                <CardTitle>Real-Time Analytics</CardTitle>
+                <CardTitle>Real-Time Data</CardTitle>
+                {/* </CHANGE> */}
               </CardHeader>
               <CardContent>
                 <CardDescription>
-                  Monitor portfolio performance with live charts and detailed metrics
+                  Monitor portfolio performance with live data and detailed metrics
                 </CardDescription>
+                {/* </CHANGE> */}
               </CardContent>
             </Card>
 
