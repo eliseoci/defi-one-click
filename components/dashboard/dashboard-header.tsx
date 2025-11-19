@@ -35,27 +35,14 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/strategies" className="flex items-center gap-2">
           <Zap className="h-6 w-6 text-primary" />
           <span className="text-xl font-bold">DeFi Hub</span>
         </Link>
 
-        {/* Navigation */}
         <nav className="hidden items-center gap-6 md:flex">
-          <Link href="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
-            Dashboard
-          </Link>
           <Link href="/strategies" className="text-sm font-medium transition-colors hover:text-primary">
             Strategies
-          </Link>
-          <Link href="/execute" className="text-sm font-medium transition-colors hover:text-primary">
-            Execute
-          </Link>
-          <Link href="/activity" className="text-sm font-medium transition-colors hover:text-primary">
-            Activity
-          </Link>
-          <Link href="/analytics" className="text-sm font-medium transition-colors hover:text-primary">
-            Analytics
           </Link>
         </nav>
 
@@ -99,7 +86,6 @@ export function DashboardHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mobile Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">
@@ -108,19 +94,7 @@ export function DashboardHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
-                <Link href="/dashboard" className="cursor-pointer">Dashboard</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <Link href="/strategies" className="cursor-pointer">Strategies</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/execute" className="cursor-pointer">Execute</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/activity" className="cursor-pointer">Activity</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/analytics" className="cursor-pointer">Analytics</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

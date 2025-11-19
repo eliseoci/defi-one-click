@@ -150,3 +150,36 @@ export const mockStrategies: Strategy[] = [
     category: 'stablecoin',
   },
 ];
+
+export interface Token {
+  symbol: string;
+  name: string;
+  icon: string;
+  balance: number;
+  chain: string;
+}
+
+export const mockTokens: Token[] = [
+  { symbol: 'ETH', name: 'Ethereum', icon: '⟠', balance: 2.45, chain: 'Ethereum' },
+  { symbol: 'USDC', name: 'USD Coin', icon: '💵', balance: 5000, chain: 'Ethereum' },
+  { symbol: 'USDT', name: 'Tether', icon: '💲', balance: 3200, chain: 'Ethereum' },
+  { symbol: 'WBTC', name: 'Wrapped Bitcoin', icon: '₿', balance: 0.15, chain: 'Ethereum' },
+  { symbol: 'DAI', name: 'Dai', icon: '💰', balance: 1500, chain: 'Ethereum' },
+];
+
+export interface HistoricalRate {
+  date: string;
+  apy: number;
+  tvl: number;
+}
+
+export const mockHistoricalRates: HistoricalRate[] = [
+  { date: '26/9', apy: 17.31, tvl: 7.8 },
+  { date: '3/10', apy: 13.6, tvl: 8.2 },
+  { date: '10/10', apy: 6.17, tvl: 7.9 },
+  { date: '17/10', apy: 18.2, tvl: 8.5 },
+  { date: '24/10', apy: 6.39, tvl: 8.1 },
+  { date: '31/10', apy: 8.8, tvl: 8.3 },
+  { date: '7/11', apy: 15.2, tvl: 8.0 },
+  { date: '14/11', apy: 6.39, tvl: 8.09 },
+];
