@@ -21,11 +21,19 @@ export function HeroSection() {
 
       <div className="container mx-auto px-4 relative">
         <div className="mx-auto max-w-3xl text-center">
-          <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight md:text-6xl">
+          <div className="mb-4 inline-flex items-center rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary border border-primary/20 backdrop-blur-sm">
+            <span className="relative flex h-2 w-2 mr-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+            </span>
+            Powered by Smart Contract Aggregation
+          </div>
+          
+          <h1 className="mb-6 text-balance text-4xl font-bold tracking-tight md:text-6xl text-white">
             Manage Your Multichain DeFi Portfolio in{" "}
-            <span className="text-primary">One Step</span>
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">One Step</span>
           </h1>
-          <p className="mb-8 text-pretty text-lg text-muted-foreground md:text-xl">
+          <p className="mb-8 text-pretty text-lg text-gray-300 md:text-xl">
             Bridge, swap, and stake across Ethereum, Arbitrum, Optimism, Polygon, Base, and Solana
             with a single transaction. No more multiple steps, no more hassle.
           </p>
