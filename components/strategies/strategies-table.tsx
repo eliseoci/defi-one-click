@@ -37,15 +37,100 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
 
   return (
     <>
-      <Card className="overflow-hidden">
+      
+      {/* Mobile View */}
+      <div className="block md:hidden space-y-3">
+        {strategies.map((strategy) => (
+          <Card
+            key={strategy.id}
+            onClick={() => handleRowClick(strategy.id)}
+            className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+          >
+            <div className="space-y-3">
+              {/* Strategy Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="flex items-center -space-x-2">
+                    {strategy.tokenIcons.map((icon, idx) => (
+                      <div
+                        key={idx}
+                        className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center text-lg"
+                      >
+                        {icon}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold">{strategy.name}</span>
+                      {strategy.isNew && (
+                        <Badge variant="secondary" className="text-xs">New</Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground uppercase mt-0.5">
+                      {strategy.protocol}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => handleQuickDeposit(e, strategy)}
+                  className="gap-1 shrink-0"
+                >
+                  <Plus className="h-3 w-3" />
+                  Deposit
+                </Button>
+              </div>
+
+              {/* Strategy Stats */}
+              <div className="grid grid-cols-3 gap-3 pt-3 border-t">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">APY</div>
+                  <div className="text-sm font-bold text-foreground">
+                    {strategy.currentApy.toFixed(2)}%
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">TVL</div>
+                  <div className="text-sm font-medium">
+                    ${(strategy.tvlNumeric / 1000000).toFixed(2)}M
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Safety</div>
+                  <div className={cn("flex gap-0.5", getSafetyColor(strategy.safetyScore))}>
+                    {[1, 2, 3].map((bar) => (
+                      <div
+                        key={bar}
+                        className={cn(
+                          "w-1 rounded-full",
+                          bar === 1 && "h-2",
+                          bar === 2 && "h-3",
+                          bar === 3 && "h-4",
+                          bar <= strategy.safetyScore ? "bg-current" : "bg-muted"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+
+        {strategies.length === 0 && (
+          <Card className="p-12 text-center text-muted-foreground">
+            No strategies found matching your filters.
+          </Card>
+        )}
+      </div>
+
+      {/* Desktop View */}
+      <Card className="overflow-hidden hidden md:block">
         {/* Table Header */}
-        <div className="grid grid-cols-[1fr_100px_100px_120px_100px_120px_80px_100px] gap-4 p-4 border-b bg-muted/50 text-xs font-medium text-muted-foreground uppercase">
+        <div className="grid grid-cols-[1fr_100px_120px_120px_80px_100px] gap-4 p-4 border-b bg-muted/50 text-xs font-medium text-muted-foreground uppercase">
           <div>Strategy</div>
-          <div className="text-right">
-            <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
-              Wallet <ArrowUpDown className="ml-1 h-3 w-3" />
-            </Button>
-          </div>
           <div className="text-right">
             <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
               Deposited <ArrowUpDown className="ml-1 h-3 w-3" />
@@ -54,11 +139,6 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
           <div className="text-right">
             <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
               Current APY <ArrowUpDown className="ml-1 h-3 w-3" />
-            </Button>
-          </div>
-          <div className="text-right">
-            <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
-              Daily <ArrowUpDown className="ml-1 h-3 w-3" />
             </Button>
           </div>
           <div className="text-right">
@@ -80,7 +160,7 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
             <div
               key={strategy.id}
               onClick={() => handleRowClick(strategy.id)}
-              className="grid grid-cols-[1fr_100px_100px_120px_100px_120px_80px_100px] gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+              className="grid grid-cols-[1fr_100px_120px_120px_80px_100px] gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
             >
               {/* Strategy Name & Info */}
               <div className="flex items-center gap-3 min-w-0">
@@ -106,18 +186,8 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                       {strategy.protocol}
                       {strategy.protocolType && ` (${strategy.protocolType})`}
                     </span>
-                    {strategy.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Wallet */}
-              <div className="text-right text-sm font-medium">
-                {strategy.deposited}
               </div>
 
               {/* Deposited */}
@@ -127,14 +197,9 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
 
               {/* Current APY */}
               <div className="text-right">
-                <div className="text-sm font-bold text-green-500">
+                <div className="text-sm font-bold text-foreground">
                   {strategy.currentApy.toFixed(2)}%
                 </div>
-              </div>
-
-              {/* Daily */}
-              <div className="text-right text-sm">
-                {strategy.dailyYield.toFixed(4)}%
               </div>
 
               {/* TVL */}
