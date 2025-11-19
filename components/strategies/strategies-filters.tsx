@@ -27,15 +27,15 @@ const categories = [
   { id: 'vault', label: 'Vaults', icon: '🏦' },
 ];
 
-const protocols = [
-  { name: 'Kodiak', icon: '🐻' },
-  { name: 'Balancer', icon: '⚖️' },
-  { name: 'Stellaswap', icon: '⭐' },
-  { name: 'Beamswap', icon: '🌟' },
-  { name: 'Sushi', icon: '🍣' },
-  { name: 'Curve', icon: '🌀' },
-  { name: 'Uniswap', icon: '🦄' },
-  { name: 'Pendle', icon: '⏱️' },
+const chains = [
+  { name: 'Ethereum' },
+  { name: 'Arbitrum' },
+  { name: 'Optimism' },
+  { name: 'Polygon' },
+  { name: 'Base' },
+  { name: 'Avalanche' },
+  { name: 'BSC' },
+  { name: 'Moonbeam' },
 ];
 
 export function StrategiesFilters({
@@ -46,17 +46,15 @@ export function StrategiesFilters({
 }: StrategiesFiltersProps) {
   return (
     <div className="space-y-4">
-      {/* Protocol Icons Row */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {protocols.map((protocol) => (
+        {chains.map((chain) => (
           <Button
-            key={protocol.name}
-            variant="ghost"
-            size="icon"
-            className="h-10 w-10 rounded-full shrink-0"
-            title={protocol.name}
+            key={chain.name}
+            variant="outline"
+            size="sm"
+            className="shrink-0 font-medium"
           >
-            <span className="text-xl">{protocol.icon}</span>
+            {chain.name}
           </Button>
         ))}
       </div>
