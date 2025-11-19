@@ -1,6 +1,5 @@
-'use client';
+"use client";
 
-import { useWalletStore } from "@/lib/wallet-store";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,14 +13,16 @@ import { Bell, Wallet, Settings, LogOut, Menu, Zap } from 'lucide-react';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { Badge } from "@/components/ui/badge";
+import { useAccount, useDisconnect } from "wagmi";
 
 export function DashboardHeader() {
   const router = useRouter();
-  const { connectedAddress, disconnect } = useWalletStore();
+  const { address } = useAccount();
+  const { disconnect } = useDisconnect();
 
-  const handleDisconnect = () => {
+  const handleDisconnect = async () => {
     disconnect();
-    router.push('/');
+    router.push("/");
   };
 
   const formatAddress = (address: string) => {
@@ -71,7 +72,7 @@ export function DashboardHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Wallet className="h-4 w-4" />
-                <span className="hidden sm:inline">{formatAddress(connectedAddress!)}</span>
+                <span className="hidden sm:inline">{formatAddress(address!)}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
