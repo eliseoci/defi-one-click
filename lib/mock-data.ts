@@ -15,6 +15,12 @@ export interface Strategy {
   category: 'stablecoin' | 'bluechip' | 'meme' | 'lp' | 'single' | 'clm' | 'vault';
   isNew?: boolean;
   isBoosted?: boolean;
+  // Security score data fields
+  audits: string;
+  rugged: boolean;
+  listedAt?: number;
+  volume24h?: number;
+  apyHistory?: Array<{apy: number, time: number}>;
 }
 
 export const mockStrategies: Strategy[] = [
@@ -31,9 +37,18 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Arbitrum',
     tokenIcons: ['💲', '🍯'],
-    safetyScore: 4,
+    safetyScore: 75,
     category: 'vault',
     isBoosted: true,
+    audits: '2 Audits',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (365 * 24 * 3600), // 1 year old
+    volume24h: 5000000,
+    apyHistory: [
+      { apy: 17.5, time: Date.now() / 1000 - (30 * 24 * 3600) },
+      { apy: 18.2, time: Date.now() / 1000 - (20 * 24 * 3600) },
+      { apy: 17.87, time: Date.now() / 1000 }
+    ]
   },
   {
     id: '2',
@@ -48,9 +63,13 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Arbitrum',
     tokenIcons: ['💵', '🍯'],
-    safetyScore: 4,
+    safetyScore: 72,
     category: 'vault',
     isBoosted: true,
+    audits: '1 Audit',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (200 * 24 * 3600),
+    volume24h: 3000000,
   },
   {
     id: '3',
@@ -65,8 +84,17 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Ethereum',
     tokenIcons: ['💰', '💵'],
-    safetyScore: 5,
+    safetyScore: 88,
     category: 'stablecoin',
+    audits: '3 Audits',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (800 * 24 * 3600), // 2+ years
+    volume24h: 55000000,
+    apyHistory: [
+      { apy: 22.1, time: Date.now() / 1000 - (30 * 24 * 3600) },
+      { apy: 22.5, time: Date.now() / 1000 - (20 * 24 * 3600) },
+      { apy: 22.32, time: Date.now() / 1000 }
+    ]
   },
   {
     id: '4',
@@ -81,8 +109,12 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Ethereum',
     tokenIcons: ['🔄', '💲'],
-    safetyScore: 5,
+    safetyScore: 85,
     category: 'stablecoin',
+    audits: '3 Audits',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (900 * 24 * 3600),
+    volume24h: 12000000,
   },
   {
     id: '5',
@@ -97,9 +129,18 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Ethereum',
     tokenIcons: ['💲'],
-    safetyScore: 3,
+    safetyScore: 45,
     category: 'single',
     isNew: true,
+    audits: '1 Audit',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (30 * 24 * 3600), // 1 month old
+    volume24h: 200000,
+    apyHistory: [
+      { apy: 65.0, time: Date.now() / 1000 - (20 * 24 * 3600) },
+      { apy: 80.5, time: Date.now() / 1000 - (10 * 24 * 3600) },
+      { apy: 71.98, time: Date.now() / 1000 }
+    ]
   },
   {
     id: '6',
@@ -114,8 +155,12 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Ethereum',
     tokenIcons: ['💵', '💱'],
-    safetyScore: 5,
+    safetyScore: 90,
     category: 'stablecoin',
+    audits: '3 Audits',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (1000 * 24 * 3600),
+    volume24h: 8000000,
   },
   {
     id: '7',
@@ -130,8 +175,12 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Ethereum',
     tokenIcons: ['⟠', '₿'],
-    safetyScore: 5,
+    safetyScore: 95,
     category: 'bluechip',
+    audits: '4 Audits',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (1500 * 24 * 3600), // 4+ years
+    volume24h: 150000000,
   },
   {
     id: '8',
@@ -146,8 +195,12 @@ export const mockStrategies: Strategy[] = [
     deposited: 0,
     chain: 'Polygon',
     tokenIcons: ['💵', '💲'],
-    safetyScore: 5,
+    safetyScore: 92,
     category: 'stablecoin',
+    audits: '3 Audits',
+    rugged: false,
+    listedAt: Date.now() / 1000 - (1200 * 24 * 3600),
+    volume24h: 60000000,
   },
 ];
 

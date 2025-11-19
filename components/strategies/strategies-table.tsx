@@ -8,6 +8,7 @@ import { ArrowUpDown, Plus } from 'lucide-react';
 import { Strategy } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { QuickDepositDialog } from "./quick-deposit-dialog";
+import { SafetyScoreDisplay } from "./safety-score-display";
 import { useRouter } from 'next/navigation';
 
 interface StrategiesTableProps {
@@ -99,20 +100,7 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Safety</div>
-                  <div className={cn("flex gap-0.5", getSafetyColor(strategy.safetyScore))}>
-                    {[1, 2, 3].map((bar) => (
-                      <div
-                        key={bar}
-                        className={cn(
-                          "w-1 rounded-full",
-                          bar === 1 && "h-2",
-                          bar === 2 && "h-3",
-                          bar === 3 && "h-4",
-                          bar <= strategy.safetyScore ? "bg-current" : "bg-muted"
-                        )}
-                      />
-                    ))}
-                  </div>
+                  <SafetyScoreDisplay score={strategy.safetyScore} size="sm" />
                 </div>
               </div>
             </div>
@@ -212,20 +200,7 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
 
               {/* Safety Score */}
               <div className="flex justify-end items-center">
-                <div className={cn("flex gap-0.5", getSafetyColor(strategy.safetyScore))}>
-                  {[1, 2, 3].map((bar) => (
-                    <div
-                      key={bar}
-                      className={cn(
-                        "w-1 rounded-full",
-                        bar === 1 && "h-2",
-                        bar === 2 && "h-3",
-                        bar === 3 && "h-4",
-                        bar <= strategy.safetyScore ? "bg-current" : "bg-muted"
-                      )}
-                    />
-                  ))}
-                </div>
+                <SafetyScoreDisplay score={strategy.safetyScore} size="md" />
               </div>
 
               <div className="flex justify-center items-center">

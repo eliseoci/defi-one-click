@@ -13,9 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { mockStrategies, mockTokens, mockHistoricalRates } from "@/lib/mock-data";
-import { ArrowLeft, Share2, Bookmark, ChevronDown, Info, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Share2, Bookmark, ChevronDown, Info, TrendingUp, AlertTriangle, Shield, CheckCircle2 } from 'lucide-react';
 import Link from "next/link";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import { SafetyScoreDisplay } from "@/components/strategies/safety-score-display";
 
 export default function StrategyDetailPage() {
   const params = useParams();
@@ -65,6 +66,95 @@ export default function StrategyDetailPage() {
     setPercentage(pct);
     setAmount(((maxAmount * pct) / 100).toFixed(2));
   };
+
+  const getSafetyFactors = () => {
+    const factors = [];
+    
+    // Audit status
+    if (strategy.audits.toLowerCase().includes('audit')) {
+      const numAudits = parseInt(strategy.audits[0], 10) || 1;
+      factors.push({
+        icon: CheckCircle2,
+        color: 'text-green-500',
+        title: numAudits > 1 ? `${numAudits} Security Audits Completed` : 'Security Audit Completed',
+        description: 'Platform'
+      });
+    }
+
+    // Protocol age
+    if (strategy.listedAt) {
+      const ageDays = (Date.now() / 1000 - strategy.listedAt) / (24 * 3600);
+      if (ageDays > 365) {
+        factors.push({
+          icon: CheckCircle2,
+          color: 'text-green-500',
+          title: 'Established Protocol (1+ years)',
+          description: 'Platform'
+        });
+      }
+    }
+
+    // TVL Size
+    if (strategy.tvlNumeric > 10000000) {
+      factors.push({
+        icon: CheckCircle2,
+        color: 'text-green-500',
+        title: 'High Total Value Locked',
+        description: 'Platform'
+      });
+    } else if (strategy.tvlNumeric < 1000000) {
+      factors.push({
+        icon: AlertTriangle,
+        color: 'text-yellow-500',
+        title: 'Low Total Value Locked',
+        description: 'Platform'
+      });
+    }
+
+    // Volume confidence
+    if (strategy.volume24h && strategy.volume24h > 10000000) {
+      factors.push({
+        icon: CheckCircle2,
+        color: 'text-green-500',
+        title: 'High Trading Volume',
+        description: 'Platform'
+      });
+    }
+
+    // Stablecoin pools
+    if (strategy.category === 'stablecoin') {
+      factors.push({
+        icon: Shield,
+        color: 'text-green-500',
+        title: 'Low Impermanent Loss Risk',
+        description: 'Asset'
+      });
+    }
+
+    // Blue chip assets
+    if (strategy.category === 'bluechip') {
+      factors.push({
+        icon: CheckCircle2,
+        color: 'text-green-500',
+        title: 'High Market-Cap Assets',
+        description: 'Asset'
+      });
+    }
+
+    // Contracts verified (default for established protocols)
+    if (!strategy.rugged) {
+      factors.push({
+        icon: CheckCircle2,
+        color: 'text-green-500',
+        title: 'Smart Contracts Verified',
+        description: 'Platform'
+      });
+    }
+
+    return factors;
+  };
+
+  const safetyFactors = getSafetyFactors();
 
   return (
     <div className="min-h-screen bg-background">
@@ -242,59 +332,32 @@ export default function StrategyDetailPage() {
             {/* Safety Score */}
             <Card>
               <CardHeader>
-                <CardTitle>Safety Score</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Safety Score</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <SafetyScoreDisplay score={strategy.safetyScore} size="lg" showLabel />
+                    <Badge variant="outline" className="ml-2">
+                      {strategy.safetyScore}/100
+                    </Badge>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Low-complexity strategy
-                      <Info className="h-4 w-4 text-muted-foreground" />
+                {safetyFactors.map((factor, index) => {
+                  const IconComponent = factor.icon;
+                  return (
+                    <div key={index} className="flex items-start gap-3">
+                      <IconComponent className={`h-5 w-5 ${factor.color} mt-0.5`} />
+                      <div>
+                        <div className="font-medium flex items-center gap-2">
+                          {factor.title}
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                        <div className="text-sm text-muted-foreground">{factor.description}</div>
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">Beefy</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Very low or zero expected IL
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Asset</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      High market-capitalization, lower volatility asset
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Asset</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Platform audited by trusted reviewer
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Platform</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Project contracts are verified
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Platform</div>
-                  </div>
-                </div>
+                  );
+                })}
               </CardContent>
             </Card>
           </div>
