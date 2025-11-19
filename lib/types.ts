@@ -1,4 +1,16 @@
-export type ChainType = 'ethereum' | 'arbitrum' | 'optimism' | 'polygon' | 'base' | 'solana';
+import type { Chain } from 'viem';
+import { arbitrum, base, bsc, mainnet, optimism, polygon } from 'viem/chains';
+
+export const VIEM_CHAINS = {
+  ethereum: mainnet,
+  arbitrum,
+  optimism,
+  polygon,
+  base,
+  bsc,
+} as const satisfies Record<string, Chain>;
+
+export type ChainType = keyof typeof VIEM_CHAINS | 'solana';
 export type TransactionStatus = 'pending' | 'confirming' | 'completed' | 'failed' | 'cancelled';
 export type ActionType = 'bridge' | 'swap' | 'stake' | 'unstake' | 'compound';
 
@@ -102,5 +114,6 @@ export const SUPPORTED_CHAINS: ChainInfo[] = [
   { id: 'optimism', name: 'Optimism', icon: '✓', color: '#FF0420', nativeToken: 'ETH' },
   { id: 'polygon', name: 'Polygon', icon: '◇', color: '#8247E5', nativeToken: 'MATIC' },
   { id: 'base', name: 'Base', icon: '■', color: '#0052FF', nativeToken: 'ETH' },
+  { id: 'bsc', name: 'BNB Chain', icon: '⬡', color: '#F0B90B', nativeToken: 'BNB' },
   { id: 'solana', name: 'Solana', icon: '◎', color: '#14F195', nativeToken: 'SOL' },
 ];
