@@ -6,13 +6,15 @@ interface SafetyScoreDisplayProps {
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   showTooltip?: boolean;
+  showScore?: boolean;
 }
 
 export function SafetyScoreDisplay({ 
   score, 
   size = 'md',
   showLabel = false,
-  showTooltip = false 
+  showTooltip = false,
+  showScore = true
 }: SafetyScoreDisplayProps) {
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-500';
@@ -53,6 +55,12 @@ export function SafetyScoreDisplay({
             {getScoreLevel(score)}
           </span>
         </div>
+      )}
+      
+      {showScore && (
+        <span className={cn("text-sm font-semibold tabular-nums", getScoreColor(score))}>
+          {(score / 10).toFixed(1)}/10
+        </span>
       )}
       
       <div className={cn("flex gap-0.5", getScoreColor(score))}>
