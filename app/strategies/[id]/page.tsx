@@ -157,15 +157,15 @@ export default function StrategyDetailPage() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
           {/* Left Column - Charts & Info */}
-          <div className="space-y-6">
+          <div className="space-y-6 min-w-0">
             {/* Historical Rate Chart */}
-            <Card>
+            <Card className="min-w-0">
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center gap-4 justify-between">
                   <CardTitle>Historical rate</CardTitle>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       variant={chartView === "APY" ? "default" : "outline"}
@@ -190,37 +190,42 @@ export default function StrategyDetailPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pl-0">
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={mockHistoricalRates}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="hsl(var(--muted-foreground))"
+                    <CartesianGrid strokeDasharray="3 3" stroke="#3b3b3b" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="#FFFFFF"
                       fontSize={12}
+                      tick={{ fill: "#E2E8F0" }}
                     />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))"
+                    <YAxis
+                      stroke="#FFFFFF"
                       fontSize={12}
+                      tick={{ fill: "#E2E8F0" }}
                       domain={chartView === "APY" ? [0, 20] : undefined}
                     />
                     <Tooltip
+                      cursor={false}
                       contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
+                        backgroundColor: "#ffffff",
+                        border: "1px solid #E2E8F0",
                         borderRadius: "8px",
+                        color: "#0f172a",
                       }}
+                      labelStyle={{ color: "#475569" }}
                     />
-                    <Line 
-                      type="monotone" 
+                    <Line
+                      type="monotone"
                       dataKey={chartView === "APY" ? "apy" : "tvl"}
-                      stroke="hsl(var(--primary))" 
+                      stroke="#ffffff"
                       strokeWidth={2}
                       dot={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
-                <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-4 px-3 sm:px-4 mt-4 text-xs text-muted-foreground">
                   <label className="flex items-center gap-2">
                     <input type="checkbox" defaultChecked className="rounded" />
                     <span>AVERAGE</span>
@@ -229,7 +234,7 @@ export default function StrategyDetailPage() {
                     <input type="checkbox" defaultChecked className="rounded" />
                     <span>MOVING AVERAGE</span>
                   </label>
-                  <div className="ml-auto flex gap-2">
+                  <div className="ml-auto flex gap-2 flex-wrap">
                     <Button size="sm" variant="ghost" className="h-6 text-xs">1D</Button>
                     <Button size="sm" variant="ghost" className="h-6 text-xs">1W</Button>
                     <Button size="sm" variant="ghost" className="h-6 text-xs">1M</Button>
