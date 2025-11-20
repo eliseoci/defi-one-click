@@ -40,6 +40,7 @@ export type Pool = {
   apy: number
   rewardTokens: string[]
   pool: string
+  poolAddress?: string
   apyPct1D: number
   apyPct7D: number
   apyPct30D: number
@@ -66,13 +67,9 @@ export type Pool = {
 }
 
 export type HistoricalAPY = {
-  timestamp: string
+  // Define the structure of HistoricalAPY here
+  date: string
   apy: number
-  apyBase: number
-  apyReward: number
-  tvlUsd: number
-  il7d: number | null
-  apyBase7d: number | null
 }
 
 // Fetch all protocols
@@ -156,6 +153,7 @@ export function transformPoolToStrategy(pool: Pool, protocol?: Protocol) {
     name: pool.symbol,
     protocol: pool.project,
     chain: pool.chain,
+    poolAddress: pool.poolAddress,
     currentApy: pool.apy || 0,
     dailyYield: (pool.apy || 0) / 365,
     tvl: formatTVL(pool.tvlUsd),
@@ -193,6 +191,8 @@ export async function getTopPools(): Promise<Pool[]> {
     const data = await response.json()
     const allPools = data.data || []
 
+    console.log("[v0] All pools fetched:", allPools.length)
+
     const susdsPools = allPools
       .filter(
         (pool: Pool) =>
@@ -204,6 +204,10 @@ export async function getTopPools(): Promise<Pool[]> {
       .slice(0, 1) // Get only 1 pool
 
     console.log("[v0] Found sUSDS pools:", susdsPools)
+    console.log(
+      "[v0] Pool addresses:",
+      susdsPools.map((p: Pool) => p.poolAddress),
+    )
     return susdsPools
   } catch (error) {
     console.error("[v0] Error fetching top pools:", error)

@@ -171,6 +171,15 @@ export default function StrategyDetailPage() {
                 <Separator orientation="vertical" className="h-4" />
                 <span className="text-sm uppercase font-medium">PLATFORM</span>
                 <span className="text-sm">{strategy.protocol}</span>
+                {strategy.poolAddress && (
+                  <>
+                    <Separator orientation="vertical" className="h-4" />
+                    <span className="text-sm uppercase font-medium">CONTRACT</span>
+                    <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                      {strategy.poolAddress.slice(0, 6)}...{strategy.poolAddress.slice(-4)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
