@@ -43,7 +43,7 @@ export default function StrategyDetailPage() {
   const strategy = mockStrategies.find((s) => s.id === params.id);
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const { transactionWorkflowSteps, walletExecutionProvider, isWalletReady } = useTransactionWorkflow();
-  const { data: susdsBalance, isPending: isSusdsBalancePending } = useBalance({
+  const { data: susdsBalance, isPending: isSusdsBalancePending, refetch: refetchSusdsBalance } = useBalance({
     address: address ?? ZERO_ADDRESS,
     token: SUSDS_CONTRACT_ADDRESS,
     chainId: mainnet.id,
@@ -65,6 +65,10 @@ export default function StrategyDetailPage() {
       maximumFractionDigits: 4,
     });
   }, [address, susdsBalance?.formatted, isSusdsBalancePending]);
+
+  const handleWorkflowComplete = () => {
+    void refetchSusdsBalance();
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -463,6 +467,7 @@ export default function StrategyDetailPage() {
             <TransactionWorkflowWidget
               steps={transactionWorkflowSteps}
               walletProvider={walletExecutionProvider}
+              onComplete={handleWorkflowComplete}
               variant="minimal"
             />
           ) : (
