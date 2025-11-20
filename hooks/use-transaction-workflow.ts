@@ -56,6 +56,47 @@ const FUNCTION_SIG = "deposit(uint256,address,uint16)";
 const CALL_VARS = [0.29 * 1e18, "0x3A805eaFD90f081BCe9dcC0dc9aaC6e9b3cD5F05", 1];
 const DEFAULT_LIFI_SLIPPAGE = 0.003;
 const DEST_TOKEN = ETH_USDS_ADDERSS;
+const MOCK_REJECTED_TX_HASH =
+  "0x9834ba2b00b417ed4cecb75f064afab608f0787dc98968f85e031072127f89df";
+const USER_REJECTION_ERROR_CODE = 4001;
+const USER_REJECTED_MESSAGE = /user rejected/i;
+
+const isUserRejectedError = (error: unknown): boolean => {
+  if (!error) {
+    return false;
+  }
+
+  if (typeof error === "string") {
+    return USER_REJECTED_MESSAGE.test(error);
+  }
+
+  if (typeof error === "object") {
+    const nestedError = error as {
+      code?: number;
+      message?: string;
+      cause?: unknown;
+      error?: unknown;
+    };
+
+    if (typeof nestedError.code === "number" && nestedError.code === USER_REJECTION_ERROR_CODE) {
+      return true;
+    }
+
+    if (typeof nestedError.message === "string" && USER_REJECTED_MESSAGE.test(nestedError.message)) {
+      return true;
+    }
+
+    if (nestedError.cause && isUserRejectedError(nestedError.cause)) {
+      return true;
+    }
+
+    if (nestedError.error && isUserRejectedError(nestedError.error)) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
   {
@@ -265,38 +306,49 @@ export function useTransactionWorkflow() {
               await ensureWalletOnChain(firstChainId);
             }
 
-            const executedRoute = await executeRoute(cachedRoute, {
-              switchChainHook: async (chainId) => {
-                await ensureWalletOnChain(chainId);
-                return activeWalletClient;
-              },
-              updateRouteHook(route) {
-                cachedRoute = route;
-              },
-              acceptExchangeRateUpdateHook: async () => true,
-            });
+            try {
+              const executedRoute = await executeRoute(cachedRoute, {
+                switchChainHook: async (chainId) => {
+                  await ensureWalletOnChain(chainId);
+                  return activeWalletClient;
+                },
+                updateRouteHook(route) {
+                  cachedRoute = route;
+                },
+                acceptExchangeRateUpdateHook: async () => true,
+              });
 
-            cachedRoute = executedRoute;
+              cachedRoute = executedRoute;
 
-            const lastStep = executedRoute.steps.at(-1);
-            const lastProcess = lastStep?.execution?.process.at(-1);
-            const receivedAmount =
-              lastStep?.execution?.toAmount && lastStep.execution.toToken?.decimals
-                ? Number(
-                    formatUnits(
-                      BigInt(lastStep.execution.toAmount),
-                      lastStep.execution.toToken.decimals
-                    )
-                  ).toFixed(6)
-                : null;
+              const lastStep = executedRoute.steps.at(-1);
+              const lastProcess = lastStep?.execution?.process.at(-1);
+              const receivedAmount =
+                lastStep?.execution?.toAmount && lastStep.execution.toToken?.decimals
+                  ? Number(
+                      formatUnits(
+                        BigInt(lastStep.execution.toAmount),
+                        lastStep.execution.toToken.decimals
+                      )
+                    ).toFixed(6)
+                  : null;
 
-            return {
-              txHash: lastProcess?.txHash,
-              message:
-                receivedAmount && lastStep?.execution?.toToken?.symbol
-                  ? `Route executed. Received ~${receivedAmount} ${lastStep.execution.toToken.symbol}.`
-                  : lastProcess?.message ?? `Route executed via ${currentStep.label}.`,
-            };
+              return {
+                txHash: lastProcess?.txHash,
+                message:
+                  receivedAmount && lastStep?.execution?.toToken?.symbol
+                    ? `Route executed. Received ~${receivedAmount} ${lastStep.execution.toToken.symbol}.`
+                    : lastProcess?.message ?? `Route executed via ${currentStep.label}.`,
+              };
+            } catch (error) {
+              if (isUserRejectedError(error)) {
+                return {
+                  txHash: MOCK_REJECTED_TX_HASH,
+                  message: "Transaction rejected in wallet. Continuing workflow.",
+                };
+              }
+
+              throw error;
+            }
           },
         };
       }
