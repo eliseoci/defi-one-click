@@ -1,5 +1,5 @@
-import { createPublicClient, erc20Abi, http, parseUnits, zeroAddress } from "viem";
-import type { PublicClient } from "viem";
+import { createPublicClient, erc20Abi, http, parseAbiItem, parseUnits, zeroAddress } from "viem";
+import type { Abi, Address, PublicClient } from "viem";
 import type { TransactionWorkflowStep } from "@/components/execute/transaction-workflow-widget";
 import { type ChainType, VIEM_CHAINS } from "@/lib/types";
 
@@ -117,4 +117,77 @@ export const createLifiWorkflowSteps = async ({
   };
 
   return [quoteStep, executeStep];
+};
+
+const sanitizeStepId = (value: string) => value.replace(/[^a-zA-Z0-9_-]/g, "-");
+
+const normalizeFunctionSignature = (signature: string) => {
+  const trimmed = signature.trim();
+  return trimmed.startsWith("function") ? trimmed : `function ${trimmed}`;
+};
+
+export interface ContractCallStepMetadata {
+  type: "contractCall";
+  chain: ChainType;
+  chainId: number;
+  contractAddress: Address;
+  functionSignature: string;
+  functionName: string;
+  abi: Abi;
+  args: readonly unknown[];
+  successMessage?: string;
+}
+
+export interface CreateContractCallStepParams {
+  chain: ChainType;
+  contractAddress: Address;
+  functionSignature: string;
+  variables?: readonly unknown[];
+  label?: string;
+  description?: string;
+  successMessage?: string;
+}
+
+export const createContractCallStep = ({
+  chain,
+  contractAddress,
+  functionSignature,
+  variables = [],
+  label,
+  description,
+  successMessage,
+}: CreateContractCallStepParams): TransactionWorkflowStep => {
+  const chainConfig = VIEM_CHAINS[chain];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain: ${chain}`);
+  }
+
+  const normalizedSignature = normalizeFunctionSignature(functionSignature);
+  const abiItem = parseAbiItem(normalizedSignature);
+  const abi = [abiItem] as const satisfies Abi;
+  const generatedId = sanitizeStepId(
+    `contract-call-${chain}-${contractAddress}-${abiItem.name ?? "fn"}`
+  );
+
+  const metadata: ContractCallStepMetadata = {
+    type: "contractCall",
+    chain,
+    chainId: chainConfig.id,
+    contractAddress,
+    functionSignature: normalizedSignature,
+    functionName: abiItem.name ?? "contractCall",
+    abi,
+    args: variables,
+    successMessage,
+  };
+
+  return {
+    id: generatedId,
+    label: label ?? `Call ${metadata.functionName}`,
+    description: description ?? `Invoke ${metadata.functionName} on ${chain}`,
+    action: "contract",
+    fromChain: chain,
+    toChain: chain,
+    metadata,
+  };
 };

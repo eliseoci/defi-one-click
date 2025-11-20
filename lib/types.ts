@@ -12,7 +12,7 @@ export const VIEM_CHAINS = {
 
 export type ChainType = keyof typeof VIEM_CHAINS | 'solana';
 export type TransactionStatus = 'pending' | 'confirming' | 'completed' | 'failed' | 'cancelled';
-export type ActionType = 'bridge' | 'swap' | 'stake' | 'unstake' | 'compound';
+export type ActionType = 'bridge' | 'swap' | 'stake' | 'unstake' | 'compound' | 'contract';
 
 export interface Wallet {
   id: string;

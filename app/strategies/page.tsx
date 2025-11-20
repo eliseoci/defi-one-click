@@ -16,7 +16,7 @@ import { TransactionWorkflowWidget, type TransactionWorkflowStep, type WalletExe
 import { mockStrategies } from "@/lib/mock-data";
 import { ChainType as LifiChainType, EVM, convertQuoteToRoute, createConfig, executeRoute, getQuote, type QuoteRequest, type RouteExtended, config as lifiConfig } from "@lifi/sdk";
 import { arbitrum } from "viem/chains";
-import { createLifiWorkflowSteps } from "@/lib/lifi";
+import { createContractCallStep, createLifiWorkflowSteps, type ContractCallStepMetadata } from "@/lib/lifi";
 import type { ChainType as SupportedChainType } from "@/lib/types";
 
 const LIFI_INTEGRATOR = "defi-one-click";
@@ -35,11 +35,17 @@ const ETH_NATIVE_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ETH_USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ARB_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
 const ARB_USDC_ADDRESS = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+const ETH_USDS_ADDERSS = "0xdC035D45d973E3EC169d2276DDab16f1e407384F";
 const BSC_USDT_DEC = 18
 const FROM_AMOUNT = 0.0001
 const SOURCE_CHAIN_TYPE: SupportedChainType = "arbitrum";
-const DESTINATION_CHAIN_TYPE: SupportedChainType = "arbitrum";
+// const DESTINATION_CHAIN_TYPE: SupportedChainType = "arbitrum";
+const DESTINATION_CHAIN_TYPE: SupportedChainType = "ethereum";
+const CONTRACT_ADDRESS = "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd";
+const FUNCTION_SIG = "deposit(uint256,address,uint16)";
+const CALL_VARS = [0.01, "0x3A805eaFD90f081BCe9dcC0dc9aaC6e9b3cD5F05", 1];
 const DEFAULT_LIFI_SLIPPAGE = 0.003;
+const DEST_TOKEN = ETH_USDS_ADDERSS;
 
 const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
   {
@@ -54,9 +60,9 @@ const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
     amount: FROM_AMOUNT,
     metadata: {
       fromChainId: SRC_CHAIN.id,
-      toChainId: arbitrum.id,
+      toChainId: ETHEREUM_CHAIN_ID,
       fromTokenAddress: zeroAddress,
-      toTokenAddress: ARB_USDT_ADDRESS,
+      toTokenAddress: DEST_TOKEN,
       decimals: BSC_USDT_DEC,
       fromAmount: parseUnits(`${FROM_AMOUNT}`, BSC_USDT_DEC).toString(),
     },
@@ -139,6 +145,14 @@ export default function StrategiesPage() {
           slippage: DEFAULT_LIFI_SLIPPAGE,
         });
 
+        steps.concat(createContractCallStep({
+          chain: DESTINATION_CHAIN_TYPE,
+          contractAddress: CONTRACT_ADDRESS,
+          functionSignature: FUNCTION_SIG,
+          variables: [],
+          successMessage: "DONE!",
+        }))
+
         if (isMounted) {
           setLifiSteps(steps);
         }
@@ -168,7 +182,9 @@ export default function StrategiesPage() {
       if (activeWalletClient.chain?.id !== chainId) {
         const switchedClient = await activeWalletClient.switchChain({ id: chainId });
         setActiveWalletClient(switchedClient);
+        return switchedClient;
       }
+      return activeWalletClient;
     };
 
     return lifiSteps.map((step) => {
@@ -259,6 +275,40 @@ export default function StrategiesPage() {
                 receivedAmount && lastStep?.execution?.toToken?.symbol
                   ? `Route executed. Received ~${receivedAmount} ${lastStep.execution.toToken.symbol}.`
                   : lastProcess?.message ?? `Route executed via ${currentStep.label}.`,
+            };
+          },
+        };
+      }
+
+      if (step.metadata?.type === "contractCall") {
+        return {
+          ...step,
+          async execute(_provider, currentStep) {
+            const metadata = currentStep.metadata as ContractCallStepMetadata | undefined;
+            if (!activeWalletClient || !metadata) {
+              throw new Error("Wallet client is required to execute contract call steps.");
+            }
+
+            const walletClientForChain =
+              (await ensureWalletOnChain(metadata.chainId)) ?? activeWalletClient;
+
+            if (!walletClientForChain.account) {
+              throw new Error("Active wallet client is missing an account.");
+            }
+
+            const txHash = await walletClientForChain.writeContract({
+              account: walletClientForChain.account,
+              address: metadata.contractAddress,
+              abi: metadata.abi,
+              functionName: metadata.functionName,
+              args: metadata.args,
+            });
+
+            return {
+              txHash,
+              message:
+                metadata.successMessage ??
+                `Called ${metadata.functionName} on ${metadata.contractAddress}`,
             };
           },
         };
