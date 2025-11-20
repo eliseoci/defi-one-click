@@ -5,6 +5,7 @@ import math
 
 app = Flask(__name__)
 
+VERSION = "0.1.5"
 # Keep mock data for testing/debugging purposes
 MOCK_MARKETS = [
     {
@@ -327,7 +328,8 @@ def scores():
         "source": "defillama",
         "poolsCount": len(response_pools),
         "protocolsCount": len(protocols_by_name),
-        "limitApplied": pools_limit if pools_limit is not None else "all"
+        "limitApplied": pools_limit if pools_limit is not None else "all",
+        "version": VERSION,
     })
 
 
