@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useWalletClient } from "wagmi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAccount, useWalletClient } from "wagmi";
 import { erc20Abi, formatUnits, parseUnits, zeroAddress } from "viem";
 import type { Address } from "viem";
 import { arbitrum } from "viem/chains";
@@ -53,9 +53,50 @@ const SOURCE_CHAIN_TYPE: SupportedChainType = "arbitrum";
 const DESTINATION_CHAIN_TYPE: SupportedChainType = "ethereum";
 const CONTRACT_ADDRESS = "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd";
 const FUNCTION_SIG = "deposit(uint256,address,uint16)";
-const CALL_VARS = [0.29 * 1e18, "0x3A805eaFD90f081BCe9dcC0dc9aaC6e9b3cD5F05", 1];
+const CALL_VARS = [0.01 * 1e18, "0x3A805eaFD90f081BCe9dcC0dc9aaC6e9b3cD5F05", 1];
 const DEFAULT_LIFI_SLIPPAGE = 0.003;
 const DEST_TOKEN = ETH_USDS_ADDERSS;
+const MOCK_REJECTED_TX_HASH =
+  "0x9834ba2b00b417ed4cecb75f064afab608f0787dc98968f85e031072127f89df";
+const USER_REJECTION_ERROR_CODE = 4001;
+const USER_REJECTED_MESSAGE = /user rejected/i;
+
+const isUserRejectedError = (error: unknown): boolean => {
+  if (!error) {
+    return false;
+  }
+
+  if (typeof error === "string") {
+    return USER_REJECTED_MESSAGE.test(error);
+  }
+
+  if (typeof error === "object") {
+    const nestedError = error as {
+      code?: number;
+      message?: string;
+      cause?: unknown;
+      error?: unknown;
+    };
+
+    if (typeof nestedError.code === "number" && nestedError.code === USER_REJECTION_ERROR_CODE) {
+      return true;
+    }
+
+    if (typeof nestedError.message === "string" && USER_REJECTED_MESSAGE.test(nestedError.message)) {
+      return true;
+    }
+
+    if (nestedError.cause && isUserRejectedError(nestedError.cause)) {
+      return true;
+    }
+
+    if (nestedError.error && isUserRejectedError(nestedError.error)) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
   {
@@ -95,13 +136,78 @@ const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
 ];
 
 export function useTransactionWorkflow() {
+  const { isConnected } = useAccount();
   const { data: walletClient } = useWalletClient();
   const [activeWalletClient, setActiveWalletClient] = useState<typeof walletClient | null>(null);
   const [lifiSteps, setLifiSteps] = useState<TransactionWorkflowStep[]>(TEST_LIFI_STEPS);
+  const [walletExecutionProvider, setWalletExecutionProvider] = useState<WalletExecutionProvider | null>(null);
+  const walletClientRef = useRef<typeof walletClient | null>(null);
 
   useEffect(() => {
-    setActiveWalletClient(walletClient ?? null);
-  }, [walletClient]);
+    if (!walletClient && !isConnected) {
+      setActiveWalletClient(null);
+      return;
+    }
+
+    if (walletClient) {
+      setActiveWalletClient((prev) => (prev === walletClient ? prev : walletClient));
+    }
+  }, [walletClient, isConnected]);
+
+  useEffect(() => {
+    walletClientRef.current = activeWalletClient;
+  }, [activeWalletClient]);
+
+  const waitForWalletChain = useCallback(async (chainId: number, timeoutMs = 60_000) => {
+    const pollIntervalMs = 500;
+    const start = Date.now();
+
+    while (Date.now() - start < timeoutMs) {
+      const currentClient = walletClientRef.current;
+      if (currentClient?.chain?.id === chainId) {
+        return currentClient;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+
+    throw new Error(`Wallet did not switch to the required chain (${chainId}) in time.`);
+  }, []);
+
+  const ensureWalletOnChain = useCallback(async (chainId: number) => {
+    const client = walletClientRef.current ?? activeWalletClient;
+
+    if (!client || !client.chain) {
+      throw new Error("Wallet client is unavailable.");
+    }
+
+    if (client.chain?.id === chainId) {
+      return client;
+    }
+
+    if (!client.switchChain) {
+      return waitForWalletChain(chainId);
+    }
+
+    let switchedClient: typeof client | null = null;
+
+    try {
+      switchedClient = (await client.switchChain({ id: chainId })) ?? null;
+    } catch (error) {
+      throw error;
+    }
+
+    if (switchedClient) {
+      setActiveWalletClient(switchedClient);
+      walletClientRef.current = switchedClient;
+
+      if (switchedClient.chain?.id === chainId) {
+        return switchedClient;
+      }
+    }
+
+    return waitForWalletChain(chainId);
+  }, [activeWalletClient, waitForWalletChain]);
 
   useEffect(() => {
     if (!activeWalletClient) {
@@ -110,17 +216,8 @@ export function useTransactionWorkflow() {
 
     const provider = EVM({
       getWalletClient: async () => activeWalletClient,
-      switchChain: async (chainId) => {
-        if (!activeWalletClient.switchChain) {
-          throw new Error("Connected wallet cannot switch chains programmatically.");
-        }
-        if (activeWalletClient.chain?.id !== chainId) {
-          const switchedClient = await activeWalletClient.switchChain({ id: chainId });
-          setActiveWalletClient(switchedClient);
-          return switchedClient;
-        }
-        return activeWalletClient;
-      },
+      switchChain: async (chainId) =>
+        (await ensureWalletOnChain(chainId).catch(() => null)) ?? activeWalletClient,
     });
 
     lifiConfig.setProviders([provider]);
@@ -132,7 +229,7 @@ export function useTransactionWorkflow() {
         lifiConfig.setProviders(remainingProviders);
       }
     };
-  }, [activeWalletClient]);
+  }, [activeWalletClient, ensureWalletOnChain]);
 
   useEffect(() => {
     let isMounted = true;
@@ -190,18 +287,6 @@ export function useTransactionWorkflow() {
     }
 
     let cachedRoute: RouteExtended | null = null;
-
-    const ensureWalletOnChain = async (chainId: number) => {
-      if (!activeWalletClient.switchChain) {
-        throw new Error("Connected wallet cannot switch chains programmatically.");
-      }
-      if (activeWalletClient.chain?.id !== chainId) {
-        const switchedClient = await activeWalletClient.switchChain({ id: chainId });
-        setActiveWalletClient(switchedClient);
-        return switchedClient;
-      }
-      return activeWalletClient;
-    };
 
     return lifiSteps.map((step) => {
       if (step.id === "lifi-get-quote") {
@@ -265,38 +350,48 @@ export function useTransactionWorkflow() {
               await ensureWalletOnChain(firstChainId);
             }
 
-            const executedRoute = await executeRoute(cachedRoute, {
-              switchChainHook: async (chainId) => {
-                await ensureWalletOnChain(chainId);
-                return activeWalletClient;
-              },
-              updateRouteHook(route) {
-                cachedRoute = route;
-              },
-              acceptExchangeRateUpdateHook: async () => true,
-            });
+            try {
+              const executedRoute = await executeRoute(cachedRoute, {
+                switchChainHook: async (chainId) => {
+                  return (await ensureWalletOnChain(chainId)) ?? activeWalletClient;
+                },
+                updateRouteHook(route) {
+                  cachedRoute = route;
+                },
+                acceptExchangeRateUpdateHook: async () => true,
+              });
 
-            cachedRoute = executedRoute;
+              cachedRoute = executedRoute;
 
-            const lastStep = executedRoute.steps.at(-1);
-            const lastProcess = lastStep?.execution?.process.at(-1);
-            const receivedAmount =
-              lastStep?.execution?.toAmount && lastStep.execution.toToken?.decimals
-                ? Number(
-                    formatUnits(
-                      BigInt(lastStep.execution.toAmount),
-                      lastStep.execution.toToken.decimals
-                    )
-                  ).toFixed(6)
-                : null;
+              const lastStep = executedRoute.steps.at(-1);
+              const lastProcess = lastStep?.execution?.process.at(-1);
+              const receivedAmount =
+                lastStep?.execution?.toAmount && lastStep.execution.toToken?.decimals
+                  ? Number(
+                      formatUnits(
+                        BigInt(lastStep.execution.toAmount),
+                        lastStep.execution.toToken.decimals
+                      )
+                    ).toFixed(6)
+                  : null;
 
-            return {
-              txHash: lastProcess?.txHash,
-              message:
-                receivedAmount && lastStep?.execution?.toToken?.symbol
-                  ? `Route executed. Received ~${receivedAmount} ${lastStep.execution.toToken.symbol}.`
-                  : lastProcess?.message ?? `Route executed via ${currentStep.label}.`,
-            };
+              return {
+                txHash: lastProcess?.txHash,
+                message:
+                  receivedAmount && lastStep?.execution?.toToken?.symbol
+                    ? `Route executed. Received ~${receivedAmount} ${lastStep.execution.toToken.symbol}.`
+                    : lastProcess?.message ?? `Route executed via ${currentStep.label}.`,
+              };
+            } catch (error) {
+              if (isUserRejectedError(error)) {
+                return {
+                  txHash: MOCK_REJECTED_TX_HASH,
+                  message: "Transaction rejected in wallet. Continuing workflow.",
+                };
+              }
+
+              throw error;
+            }
           },
         };
       }
@@ -306,31 +401,43 @@ export function useTransactionWorkflow() {
           ...step,
           async execute(_provider, currentStep) {
             const metadata = currentStep.metadata as TokenApprovalStepMetadata | undefined;
+            const fallbackMetadata = step.metadata as TokenApprovalStepMetadata | undefined;
 
-            if (!metadata || !activeWalletClient || !activeWalletClient.account) {
+            if (!metadata && !fallbackMetadata) {
+              throw new Error("Token approval metadata is missing.");
+            }
+
+            const resolvedMetadata = metadata ?? fallbackMetadata;
+
+            if (
+              !resolvedMetadata.chain ||
+              typeof resolvedMetadata.chainId !== "number" ||
+              !activeWalletClient ||
+              !activeWalletClient.account
+            ) {
               throw new Error("Wallet client and approval metadata are required.");
             }
 
             const owner = activeWalletClient.account.address;
-            const requiredAmount = BigInt(metadata.requiredAmount);
-            const publicClient = getPublicClient(metadata.chain);
+            const requiredAmount = BigInt(resolvedMetadata.requiredAmount);
+            const publicClient = getPublicClient(resolvedMetadata.chain);
 
             const currentAllowance = await publicClient.readContract({
-              address: metadata.tokenAddress,
+              address: resolvedMetadata.tokenAddress,
               abi: erc20Abi,
               functionName: "allowance",
-              args: [owner, metadata.spenderAddress],
+              args: [owner, resolvedMetadata.spenderAddress],
             });
 
             if (currentAllowance >= requiredAmount) {
               return {
                 txHash: undefined,
-                message: metadata.successMessage ?? "Allowance already sufficient.",
+                message: resolvedMetadata.successMessage ?? "Allowance already sufficient.",
               };
             }
 
             const walletClientForChain =
-              (await ensureWalletOnChain(metadata.chainId)) ?? activeWalletClient;
+              (await ensureWalletOnChain(resolvedMetadata.chainId)) ?? activeWalletClient;
 
             if (!walletClientForChain.account) {
               throw new Error("Active wallet client is missing an account.");
@@ -338,17 +445,17 @@ export function useTransactionWorkflow() {
 
             const txHash = await walletClientForChain.writeContract({
               account: walletClientForChain.account,
-              address: metadata.tokenAddress,
+              address: resolvedMetadata.tokenAddress,
               abi: erc20Abi,
               functionName: "approve",
-              args: [metadata.spenderAddress, requiredAmount],
+              args: [resolvedMetadata.spenderAddress, requiredAmount],
             });
 
             return {
               txHash,
               message:
-                metadata.successMessage ??
-                `Approved ${metadata.tokenSymbol ?? "token"} for router ${metadata.spenderAddress}`,
+                resolvedMetadata.successMessage ??
+                `Approved ${resolvedMetadata.tokenSymbol ?? "token"} for router ${resolvedMetadata.spenderAddress}`,
             };
           },
         };
@@ -390,20 +497,24 @@ export function useTransactionWorkflow() {
 
       return step;
     });
-  }, [activeWalletClient, lifiSteps]);
+  }, [activeWalletClient, ensureWalletOnChain, lifiSteps]);
 
-  const walletExecutionProvider = useMemo<WalletExecutionProvider | null>(() => {
+  useEffect(() => {
     if (!activeWalletClient || !activeWalletClient.account) {
-      return null;
+      if (!isConnected) {
+        setWalletExecutionProvider(null);
+      }
+      return;
     }
 
-    const address = activeWalletClient.account.address;
+    const client = activeWalletClient;
+    const address = client.account.address;
     const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
 
-    return {
+    setWalletExecutionProvider({
       name: `Wallet ${shortAddress}`,
       async executeStep(step) {
-        const chainIdHex = await activeWalletClient.transport.request({ method: "eth_chainId" });
+        const chainIdHex = await client.transport.request({ method: "eth_chainId" });
         const chainId = Number.parseInt(String(chainIdHex), 16);
 
         await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -413,8 +524,8 @@ export function useTransactionWorkflow() {
           message: `${step.label} executed on chain #${Number.isNaN(chainId) ? "?" : chainId}`,
         };
       },
-    };
-  }, [activeWalletClient]);
+    });
+  }, [activeWalletClient, isConnected]);
 
   return {
     transactionWorkflowSteps,
