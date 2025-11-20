@@ -80,8 +80,8 @@ export default function StrategyDetailPage() {
         </Link>
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-start md:justify-between">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
             <div className="flex items-center -space-x-2">
               {strategy.tokenIcons.map((icon, idx) => (
                 <div
@@ -92,29 +92,29 @@ export default function StrategyDetailPage() {
                 </div>
               ))}
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
+            <div className="space-y-2">
+              <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center">
                 <h1 className="text-2xl font-bold">{strategy.name}</h1>
                 {strategy.isNew && <Badge variant="secondary">New</Badge>}
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-muted-foreground sm:justify-start">
                 <span className="text-sm uppercase font-medium">CHAIN</span>
                 <Badge variant="outline">{strategy.chain}</Badge>
-                <Separator orientation="vertical" className="h-4" />
+                <Separator orientation="vertical" className="hidden h-4 sm:block" />
                 <span className="text-sm uppercase font-medium">PLATFORM</span>
                 <span className="text-sm">{strategy.protocol}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto md:justify-end">
+            <Button variant="outline" size="icon" className="flex-1 min-w-[48px] sm:flex-none md:flex-none">
               <Bookmark className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="flex-1 min-w-[48px] sm:flex-none md:flex-none">
               <Share2 className="h-4 w-4" />
             </Button>
-            <Button>VAULT</Button>
+            <Button className="flex-1 sm:flex-none md:flex-none">VAULT</Button>
           </div>
         </div>
 
