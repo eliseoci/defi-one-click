@@ -1,49 +1,116 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { useParams, useRouter } from 'next/navigation';
-import { useAccount } from "wagmi";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { mockStrategies, mockTokens, mockHistoricalRates } from "@/lib/mock-data";
-import { ArrowLeft, Share2, Bookmark, ChevronDown, Info, TrendingUp, AlertTriangle, Shield, CheckCircle2 } from 'lucide-react';
-import Link from "next/link";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { SafetyScoreDisplay } from "@/components/strategies/safety-score-display";
+import { useState, useEffect } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { useAccount } from "wagmi"
+import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { fetchPools, fetchProtocols, fetchPoolHistory, transformPoolToStrategy } from "@/lib/defillama-api"
+import { calcSecurityScoreWithMetrics } from "@/lib/calc-security-score"
+import { SecurityBreakdown } from "@/components/strategies/security-breakdown"
+import { mockTokens } from "@/lib/mock-data"
+import { ArrowLeft, Share2, Bookmark, ChevronDown, Info } from "lucide-react"
+import Link from "next/link"
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 
 export default function StrategyDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const { isConnected } = useAccount();
-  const [mounted, setMounted] = useState(false);
-  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
-  const [selectedToken, setSelectedToken] = useState<string>("USDC");
-  const [amount, setAmount] = useState<string>("");
-  const [percentage, setPercentage] = useState<number>(0);
-  const [chartView, setChartView] = useState<"APY" | "TVL" | "Price">("APY");
+  const params = useParams()
+  const router = useRouter()
+  const { isConnected } = useAccount()
+  const [mounted, setMounted] = useState(false)
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit")
+  const [selectedToken, setSelectedToken] = useState<string>("USDC")
+  const [amount, setAmount] = useState<string>("")
+  const [percentage, setPercentage] = useState<number>(0)
+  const [chartView, setChartView] = useState<"APY" | "TVL" | "Price">("APY")
+  const [strategy, setStrategy] = useState<any>(null)
+  const [securityMetrics, setSecurityMetrics] = useState<any>(null)
+  const [chartData, setChartData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (mounted && !isConnected) {
-      router.push("/");
+      router.push("/")
     }
-  }, [mounted, isConnected, router]);
+  }, [mounted, isConnected, router])
+
+  useEffect(() => {
+    async function loadStrategy() {
+      if (!params.id || !isConnected) return
+
+      setLoading(true)
+      try {
+        console.log("[v0] Fetching strategy details for:", params.id)
+        const [pools, protocols] = await Promise.all([fetchPools(), fetchProtocols()])
+
+        const pool = pools.find((p) => p.pool === params.id)
+        if (!pool) {
+          console.log("[v0] Strategy not found")
+          setLoading(false)
+          return
+        }
+
+        const protocol = protocols.find((p) => p.name.toLowerCase() === pool.project.toLowerCase())
+        const strategyData = transformPoolToStrategy(pool, protocol)
+
+        // Fetch historical data
+        const history = await fetchPoolHistory(params.id as string)
+        const formattedHistory = history.slice(-30).map((h) => ({
+          date: new Date(h.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          apy: h.apy || 0,
+          tvl: h.tvlUsd || 0,
+        }))
+
+        // Calculate security metrics
+        const metrics = await calcSecurityScoreWithMetrics({
+          audits: strategyData.audits,
+          rugged: strategyData.rugged,
+          tvl: strategyData.tvlNumeric,
+          listedAt: strategyData.listedAt,
+          volume24h: strategyData.volume24h,
+          apyHistory: history.map((h) => ({ apy: h.apy, time: new Date(h.timestamp).getTime() / 1000 })),
+          underlyingSymbols: strategyData.underlyingSymbols,
+        })
+
+        console.log("[v0] Strategy loaded:", strategyData)
+        setStrategy({ ...strategyData, safetyScore: metrics.totalScore })
+        setSecurityMetrics(metrics)
+        setChartData(formattedHistory)
+      } catch (error) {
+        console.error("[v0] Error loading strategy:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadStrategy()
+  }, [params.id, isConnected])
 
   if (!mounted) {
-    return null;
+    return null
   }
 
-  const strategy = mockStrategies.find((s) => s.id === params.id);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        <div className="container mx-auto p-8 text-center">
+          <div className="text-lg font-medium text-muted-foreground">Loading strategy details...</div>
+        </div>
+      </div>
+    )
+  }
 
   if (!strategy) {
     return (
@@ -56,110 +123,21 @@ export default function StrategyDetailPage() {
           </Link>
         </div>
       </div>
-    );
+    )
   }
 
-  const selectedTokenData = mockTokens.find(t => t.symbol === selectedToken);
-  const maxAmount = selectedTokenData?.balance || 0;
+  const selectedTokenData = mockTokens.find((t) => t.symbol === selectedToken)
+  const maxAmount = selectedTokenData?.balance || 0
 
   const handlePercentage = (pct: number) => {
-    setPercentage(pct);
-    setAmount(((maxAmount * pct) / 100).toFixed(2));
-  };
-
-  const getSafetyFactors = () => {
-    const factors = [];
-    
-    // Audit status
-    if (strategy.audits.toLowerCase().includes('audit')) {
-      const numAudits = parseInt(strategy.audits[0], 10) || 1;
-      factors.push({
-        icon: CheckCircle2,
-        color: 'text-green-500',
-        title: numAudits > 1 ? `${numAudits} Security Audits Completed` : 'Security Audit Completed',
-        description: 'Platform'
-      });
-    }
-
-    // Protocol age
-    if (strategy.listedAt) {
-      const ageDays = (Date.now() / 1000 - strategy.listedAt) / (24 * 3600);
-      if (ageDays > 365) {
-        factors.push({
-          icon: CheckCircle2,
-          color: 'text-green-500',
-          title: 'Established Protocol (1+ years)',
-          description: 'Platform'
-        });
-      }
-    }
-
-    // TVL Size
-    if (strategy.tvlNumeric > 10000000) {
-      factors.push({
-        icon: CheckCircle2,
-        color: 'text-green-500',
-        title: 'High Total Value Locked',
-        description: 'Platform'
-      });
-    } else if (strategy.tvlNumeric < 1000000) {
-      factors.push({
-        icon: AlertTriangle,
-        color: 'text-yellow-500',
-        title: 'Low Total Value Locked',
-        description: 'Platform'
-      });
-    }
-
-    // Volume confidence
-    if (strategy.volume24h && strategy.volume24h > 10000000) {
-      factors.push({
-        icon: CheckCircle2,
-        color: 'text-green-500',
-        title: 'High Trading Volume',
-        description: 'Platform'
-      });
-    }
-
-    // Stablecoin pools
-    if (strategy.category === 'stablecoin') {
-      factors.push({
-        icon: Shield,
-        color: 'text-green-500',
-        title: 'Low Impermanent Loss Risk',
-        description: 'Asset'
-      });
-    }
-
-    // Blue chip assets
-    if (strategy.category === 'bluechip') {
-      factors.push({
-        icon: CheckCircle2,
-        color: 'text-green-500',
-        title: 'High Market-Cap Assets',
-        description: 'Asset'
-      });
-    }
-
-    // Contracts verified (default for established protocols)
-    if (!strategy.rugged) {
-      factors.push({
-        icon: CheckCircle2,
-        color: 'text-green-500',
-        title: 'Smart Contracts Verified',
-        description: 'Platform'
-      });
-    }
-
-    return factors;
-  };
-
-  const safetyFactors = getSafetyFactors();
+    setPercentage(pct)
+    setAmount(((maxAmount * pct) / 100).toFixed(2))
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <DashboardHeader />
-      
+
       <main className="container mx-auto p-4 md:p-6 lg:p-8">
         {/* Back Button */}
         <Link href="/strategies">
@@ -170,10 +148,10 @@ export default function StrategyDetailPage() {
         </Link>
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center -space-x-2">
-              {strategy.tokenIcons.map((icon, idx) => (
+              {strategy.tokenIcons.map((icon: string, idx: number) => (
                 <div
                   key={idx}
                   className="w-12 h-12 rounded-full bg-muted border-2 border-background flex items-center justify-center text-2xl"
@@ -187,7 +165,7 @@ export default function StrategyDetailPage() {
                 <h1 className="text-2xl font-bold">{strategy.name}</h1>
                 {strategy.isNew && <Badge variant="secondary">New</Badge>}
               </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-muted-foreground">
                 <span className="text-sm uppercase font-medium">CHAIN</span>
                 <Badge variant="outline">{strategy.chain}</Badge>
                 <Separator orientation="vertical" className="h-4" />
@@ -270,96 +248,42 @@ export default function StrategyDetailPage() {
                     >
                       TVL
                     </Button>
-                    <Button
-                      size="sm"
-                      variant={chartView === "Price" ? "default" : "outline"}
-                      onClick={() => setChartView("Price")}
-                    >
-                      Price
-                    </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={mockHistoricalRates}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis 
-                      dataKey="date" 
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                    />
-                    <YAxis 
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={12}
-                      domain={chartView === "APY" ? [0, 20] : undefined}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey={chartView === "APY" ? "apy" : "tvl"}
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked className="rounded" />
-                    <span>AVERAGE</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked className="rounded" />
-                    <span>MOVING AVERAGE</span>
-                  </label>
-                  <div className="ml-auto flex gap-2">
-                    <Button size="sm" variant="ghost" className="h-6 text-xs">1D</Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-xs">1W</Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-xs">1M</Button>
-                    <Button size="sm" variant="default" className="h-6 text-xs">1Y</Button>
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey={chartView === "APY" ? "apy" : "tvl"}
+                        stroke="hsl(var(--primary))"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No historical data available
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
-            {/* Safety Score */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Safety Score</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <SafetyScoreDisplay score={strategy.safetyScore} size="lg" showLabel />
-                    <Badge variant="outline" className="ml-2">
-                      {strategy.safetyScore}/100
-                    </Badge>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {safetyFactors.map((factor, index) => {
-                  const IconComponent = factor.icon;
-                  return (
-                    <div key={index} className="flex items-start gap-3">
-                      <IconComponent className={`h-5 w-5 ${factor.color} mt-0.5`} />
-                      <div>
-                        <div className="font-medium flex items-center gap-2">
-                          {factor.title}
-                          <Info className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                        <div className="text-sm text-muted-foreground">{factor.description}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
+            {/* Security Score Breakdown */}
+            {securityMetrics && <SecurityBreakdown metrics={securityMetrics} />}
           </div>
 
           {/* Right Column - Deposit/Withdraw */}
@@ -406,11 +330,7 @@ export default function StrategyDetailPage() {
                           onChange={(e) => setAmount(e.target.value)}
                           className="text-2xl h-14 pr-24"
                         />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="absolute right-2 top-2"
-                        >
+                        <Button size="sm" variant="ghost" className="absolute right-2 top-2">
                           <span className="mr-1">{selectedTokenData?.icon}</span>
                           Select <ChevronDown className="ml-1 h-3 w-3" />
                         </Button>
@@ -440,7 +360,7 @@ export default function StrategyDetailPage() {
                       <div className="flex items-center justify-between">
                         <div className="text-xl font-bold">{amount || "0"}</div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">USDT0</span>
+                          <span className="text-sm font-medium">{strategy.underlyingSymbols[0]}</span>
                           <span className="text-lg">{strategy.tokenIcons[0]}</span>
                         </div>
                       </div>
@@ -469,17 +389,14 @@ export default function StrategyDetailPage() {
                         <span>0%</span>
                       </div>
                       <p className="text-xs text-muted-foreground pt-2">
-                        The displayed APY accounts for performance fee{" "}
-                        <Info className="h-3 w-3 inline" /> that is deducted from the generated
-                        yield only
+                        The displayed APY accounts for performance fee <Info className="h-3 w-3 inline" /> that is
+                        deducted from the generated yield only
                       </p>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="withdraw" className="space-y-4 mt-0">
-                    <div className="text-center py-8 text-muted-foreground">
-                      No deposits to withdraw
-                    </div>
+                    <div className="text-center py-8 text-muted-foreground">No deposits to withdraw</div>
                   </TabsContent>
                 </Tabs>
               </CardContent>
@@ -498,5 +415,5 @@ export default function StrategyDetailPage() {
         </div>
       </main>
     </div>
-  );
+  )
 }
