@@ -183,14 +183,30 @@ function formatTVL(tvl: number): string {
   return `$${tvl.toFixed(2)}`
 }
 
-async function getTopPoolsByTVL(chain: string, count: number): Promise<Pool[]> {
-  const res = await fetch(`https://yields.llama.fi/pools?chain=${encodeURIComponent(chain)}`)
-  const allPools = (await res.json()).data
-  // Sort pools by TVL descending and take top 'count'
-  return allPools.sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd).slice(0, count)
-}
-
 export async function getTopPools(): Promise<Pool[]> {
-  const [base, arbitrum] = await Promise.all([getTopPoolsByTVL("Base", 3), getTopPoolsByTVL("Arbitrum", 2)])
-  return [...base, ...arbitrum]
+  try {
+    const response = await fetch(
+      "https://pro-api.llama.fi/436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1/yields/poolsOld?chain=base%2Carbitrum",
+    )
+    if (!response.ok) throw new Error("Failed to fetch pools")
+
+    const data = await response.json()
+    const allPools = data.data || []
+
+    // Filter and get top 2 from Base and Arbitrum by TVL
+    const basePools = allPools
+      .filter((pool: Pool) => pool.chain.toLowerCase() === "base")
+      .sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd)
+      .slice(0, 2)
+
+    const arbitrumPools = allPools
+      .filter((pool: Pool) => pool.chain.toLowerCase() === "arbitrum")
+      .sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd)
+      .slice(0, 2)
+
+    return [...basePools, ...arbitrumPools]
+  } catch (error) {
+    console.error("[v0] Error fetching top pools:", error)
+    return []
+  }
 }
