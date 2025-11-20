@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 app = Flask(__name__)
 
 VERSION = "0.2.0"
-POOLS_API_KEY = "436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1"
+POOLS_API_KEY = os.getenv("POOLS_API_KEY")
 POOLS_ENDPOINT = f"https://pro-api.llama.fi/{POOLS_API_KEY}/yields/poolsOld"
 # Keep mock data for testing/debugging purposes
 MOCK_MARKETS = [
