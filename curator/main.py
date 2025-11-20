@@ -1,12 +1,13 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Response
 import requests
 from typing import List, Dict, Optional
 import math
+import re
 from datetime import datetime, timezone
 
 app = Flask(__name__)
 
-VERSION = "0.1.5"
+VERSION = "0.1.8"
 # Keep mock data for testing/debugging purposes
 MOCK_MARKETS = [
     {
@@ -258,7 +259,9 @@ def scores():
         }), 500
     
     limit_param = request.args.get("limit")
+    tokens_param = request.args.get("tokens")
     pools_limit: Optional[int] = None
+    token_filters: List[str] = []
 
     if limit_param is not None:
         try:
@@ -270,8 +273,56 @@ def scores():
             print(f"[STEP 3] Warning: invalid limit '{limit_param}'. Defaulting to all pools.")
             pools_limit = None
 
+    if tokens_param:
+        token_filters = [
+            token.strip().lower()
+            for token in tokens_param.split(",")
+            if token.strip()
+        ]
+        if token_filters:
+            print(f"[STEP 2.5] Token filter enabled: {token_filters}")
+
     protocols_by_name = {protocol.get("name", "").lower(): protocol for protocol in protocols if protocol.get("name")}
+
+    def pool_matches_tokens(pool: Dict, filters: List[str]) -> bool:
+        if not filters:
+            return True
+
+        symbol = (pool.get("symbol") or "").lower()
+        symbol_parts = [part for part in re.split(r"[-_/ ]+", symbol) if part]
+        underlying_tokens = [token.lower() for token in (pool.get("underlyingTokens") or [])]
+
+        tokens_present = set(symbol_parts + underlying_tokens)
+        if not tokens_present and symbol:
+            tokens_present.add(symbol)
+
+        for token_filter in filters:
+            if token_filter not in tokens_present:
+                return False
+        return True
+
+    if token_filters:
+        original_pool_count = len(pools)
+        pools = [pool for pool in pools if pool_matches_tokens(pool, token_filters)]
+        print(f"[STEP 2.5] Filtered pools by tokens: {original_pool_count} -> {len(pools)}")
     
+    def build_response(pools_payload: List[Dict]) -> Response:
+        protocols_in_payload = {
+            (pool.get("protocolMeta") or {}).get("id") or pool.get("project")
+            for pool in pools_payload
+            if (pool.get("protocolMeta") or {}).get("id") or pool.get("project")
+        }
+        return jsonify({
+            "data": pools_payload,
+            "source": "defillama",
+            "poolsCount": len(pools_payload),
+            "protocolsCount": len(protocols_in_payload),
+            "limitApplied": pools_limit if pools_limit is not None else "all",
+            "tokensFilter": token_filters if token_filters else "all",
+            "version": VERSION,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+
     # Calculate security score for each pool
     print(f"\n[STEP 3] Starting to calculate security scores for {len(pools)} pools...")
     pools_with_scores = []
@@ -305,34 +356,37 @@ def scores():
         if idx % 100 == 0 or idx == total_pools:
             print(f"[STEP 3] Progress: Calculated scores for {idx}/{total_pools} pools...")
     
+    if not pools_with_scores:
+        print("[STEP 3] No pools remaining after filters. Returning empty response.")
+        return build_response([])
+    
     # Sort by security score (highest first)
     print("[STEP 3] Sorting pools by security score...")
     pools_with_scores.sort(key=lambda x: x.get("securityScore", 0), reverse=True)
     
     highest_score = pools_with_scores[0]
     lowest_score = pools_with_scores[-1]
+    protocols_matched = len({
+        (pool.get("protocolMeta") or {}).get("id") or pool.get("project")
+        for pool in pools_with_scores
+        if (pool.get("protocolMeta") or {}).get("id") or pool.get("project")
+    })
     
     print(f"[STEP 3] ✓ Completed: Calculated security scores for {len(pools_with_scores)} pools")
     print("\n📊 Results Summary:")
     print(f"   - Total pools: {len(pools_with_scores)}")
-    print(f"   - Total protocols matched: {len(protocols_by_name)}")
+    print(f"   - Total protocols matched: {protocols_matched}")
+    tokens_summary = ", ".join(token_filters) if token_filters else "none"
+    print(f"   - Token filter: {tokens_summary}")
     print(f"   - Highest pool score: {highest_score.get('securityScore', 0):.2f} ({highest_score.get('project', 'N/A')} - {highest_score.get('symbol', 'N/A')})")
     print(f"   - Lowest pool score: {lowest_score.get('securityScore', 0):.2f} ({lowest_score.get('project', 'N/A')} - {lowest_score.get('symbol', 'N/A')})")
     print("="*60 + "\n")
-
+    
     response_pools = pools_with_scores[:pools_limit] if pools_limit is not None else pools_with_scores
     if pools_limit is not None:
         print(f"[STEP 3] Returning top {len(response_pools)} pools (limit={pools_limit})")
-
-    return jsonify({
-        "data": response_pools,
-        "source": "defillama",
-        "poolsCount": len(response_pools),
-        "protocolsCount": len(protocols_by_name),
-        "limitApplied": pools_limit if pools_limit is not None else "all",
-        "version": VERSION,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-    })
+    
+    return build_response(response_pools)
 
 
 if __name__ == "__main__":
