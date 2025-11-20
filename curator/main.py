@@ -1,6 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 import requests
-from typing import List, Dict
+from typing import List, Dict, Optional
 import math
 
 app = Flask(__name__)
@@ -123,114 +123,90 @@ def fetch_defillama_pools() -> List[Dict]:
         return []
 
 
-def calculate_security_score(protocol: Dict, pools: List[Dict]) -> float:
+def calculate_pool_security_score(pool: Dict, protocol: Optional[Dict]) -> float:
     """
-    Calculate a security score (0-10) for a protocol based on protocol and pool data.
+    Calculate a security score (0-10) for a pool based on the pool metrics and
+    the underlying protocol fundamentals (from the protocols endpoint).
     Higher score = more secure.
     """
     score = 0.0
     max_score = 10.0
     
-    # Get pools for this protocol (match by project name)
-    protocol_pools = [
-        pool for pool in pools 
-        if pool.get("project", "").lower() == protocol.get("name", "").lower()
-    ]
-    
-    # 1. TVL Score (0-3 points)
-    # Higher TVL = more secure (logarithmic scale)
-    tvl = protocol.get("tvl", 0)
-    if tvl > 0:
-        # Log scale: 1B = 1.5, 10B = 2.5, 100B = 3.0
-        tvl_score = min(3.0, 1.0 + (math.log10(max(1, tvl / 1_000_000)) / 2))
+    # 1. Pool TVL Score (0-3 points) - larger pools tend to be safer
+    pool_tvl = pool.get("tvlUsd") or 0
+    if pool_tvl > 0:
+        pool_tvl_millions = pool_tvl / 1_000_000
+        tvl_score = min(3.0, 0.5 + math.log10(max(1, pool_tvl_millions)))
         score += tvl_score
     
-    # 2. TVL Stability Score (0-1.5 points)
-    # Positive or stable TVL changes = good
-    change_1d = protocol.get("change_1d")
-    change_7d = protocol.get("change_7d")
+    # 2. Protocol Strength Score (0-3 points) - based on protocol TVL & momentum
+    if protocol:
+        protocol_tvl = protocol.get("tvl", 0)
+        if protocol_tvl > 0:
+            protocol_tvl_billions = protocol_tvl / 1_000_000_000
+            protocol_tvl_score = min(2.0, 0.5 + math.log10(max(1, protocol_tvl_billions)))
+            score += protocol_tvl_score
+        
+        change_1d = protocol.get("change_1d")
+        change_7d = protocol.get("change_7d")
+        
+        if change_1d is not None:
+            if change_1d >= 0:
+                score += 0.4
+            elif change_1d < -10:
+                score -= 0.4
+        
+        if change_7d is not None:
+            if change_7d >= 0:
+                score += 0.6
+            elif change_7d < -20:
+                score -= 0.6
+        
+        chain_count = len(protocol.get("chains", []))
+        if chain_count > 1:
+            score += min(0.5, chain_count * 0.1)
     
-    if change_1d is not None:
-        # Reward positive changes, penalize large negative changes
-        if change_1d >= 0:
-            score += 0.5
-        elif change_1d < -10:  # Large drop
-            score -= 0.5
+    # 3. Pool Risk Flags (0-2 points)
+    if pool.get("stablecoin", False):
+        score += 0.3
     
-    if change_7d is not None:
-        if change_7d >= 0:
+    il_risk = pool.get("ilRisk")
+    if il_risk == "no":
+        score += 0.5
+    elif il_risk == "yes":
+        score -= 0.5
+    
+    exposure = pool.get("exposure")
+    if exposure == "single":
+        score += 0.2
+    elif exposure == "multi":
+        score -= 0.1
+    
+    # 4. Predictions & Confidence (0-1.5 points)
+    predictions = pool.get("predictions", {})
+    predicted_class = predictions.get("predictedClass")
+    confidence = predictions.get("binnedConfidence")
+    
+    if predicted_class in ["Stable", "Stable/Up"]:
+        if confidence == 3:
             score += 1.0
-        elif change_7d < -20:  # Large weekly drop
-            score -= 1.0
+        elif confidence == 2:
+            score += 0.7
+        elif confidence == 1:
+            score += 0.4
+    elif predicted_class == "Down":
+        score -= 0.7
     
-    # Clamp TVL stability score
-    score = max(0, min(max_score, score))
-    
-    # 3. Pool Count & Diversity Score (0-2 points)
-    # More pools = more established and diversified
-    pool_count = len(protocol_pools)
-    if pool_count > 0:
-        # Log scale: 1 pool = 0.5, 10 pools = 1.5, 50+ pools = 2.0
-        pool_score = min(2.0, 0.5 + (math.log10(max(1, pool_count)) * 0.5))
-        score += pool_score
-    
-    # 4. Chain Diversity Score (0-1 point)
-    # More chains = less single point of failure
-    chain_count = len(protocol.get("chains", []))
-    if chain_count > 1:
-        score += min(1.0, chain_count * 0.25)
-    
-    # 5. Pool Quality Score (0-2.5 points)
-    # Based on pool predictions, IL risk, and exposure
-    if protocol_pools:
-        total_pool_tvl = sum(pool.get("tvlUsd", 0) or 0 for pool in protocol_pools)
-        if total_pool_tvl > 0:
-            weighted_score = 0.0
-            
-            for pool in protocol_pools:
-                pool_tvl = pool.get("tvlUsd", 0) or 0
-                weight = pool_tvl / total_pool_tvl if total_pool_tvl > 0 else 0
-                
-                pool_score = 0.0
-                
-                # Predictions confidence
-                predictions = pool.get("predictions", {})
-                if predictions:
-                    predicted_class = predictions.get("predictedClass", "")
-                    confidence = predictions.get("binnedConfidence")
-                    
-                    if predicted_class in ["Stable", "Stable/Up"]:
-                        if confidence == 3:
-                            pool_score += 0.8
-                        elif confidence == 2:
-                            pool_score += 0.5
-                        elif confidence == 1:
-                            pool_score += 0.3
-                    elif predicted_class == "Down":
-                        pool_score -= 0.5
-                
-                # IL Risk (impermanent loss)
-                il_risk = pool.get("ilRisk", "")
-                if il_risk == "no":
-                    pool_score += 0.5
-                elif il_risk == "yes":
-                    pool_score -= 0.3
-                
-                # Exposure type
-                exposure = pool.get("exposure", "")
-                if exposure == "single":
-                    pool_score += 0.2  # Single exposure is generally safer
-                
-                # Stablecoin pools are generally safer
-                if pool.get("stablecoin", False):
-                    pool_score += 0.2
-                
-                weighted_score += pool_score * weight
-            
-            score += min(2.5, weighted_score)
+    # 5. APY sanity checks (0-0.5 points)
+    apy = pool.get("apy")
+    if apy is not None:
+        if 0 <= apy <= 20:
+            score += 0.3
+        elif apy > 50:
+            score -= 0.3  # extremely high APY suggests higher risk
     
     # Normalize to 0-10 range
-    score = max(0.0, min(10.0, score))
+    score = max(0.0, min(max_score, score))
     
     return round(score, 2)
 
@@ -253,12 +229,12 @@ def markets():
 @app.route("/scores", methods=["GET"])
 def scores():
     """
-    Return protocols with security scores (0-10) calculated from both
-    protocols and pools data from DefiLlama APIs.
+    Return pools with security scores (0-10) calculated by combining
+    DefiLlama pools data with their parent protocol fundamentals.
     Fetches fresh data from both APIs on each request.
     """
     print("\n" + "="*60)
-    print("🔍 /scores endpoint called - Starting security score calculation")
+    print("🔍 /scores endpoint called - Starting pool security score calculation")
     print("="*60)
     
     # Fetch data from both APIs
@@ -272,39 +248,86 @@ def scores():
             "data": []
         }), 500
     
-    # Calculate security score for each protocol
-    print(f"\n[STEP 3] Starting to calculate security scores for {len(protocols)} protocols...")
-    protocols_with_scores = []
-    total_protocols = len(protocols)
+    if not pools:
+        print("\n[ERROR] Failed to fetch pools data - aborting score calculation")
+        return jsonify({
+            "error": "Failed to fetch pools data",
+            "data": []
+        }), 500
     
-    for idx, protocol in enumerate(protocols, 1):
-        security_score = calculate_security_score(protocol, pools)
+    limit_param = request.args.get("limit")
+    pools_limit: Optional[int] = None
+
+    if limit_param is not None:
+        try:
+            pools_limit = int(limit_param)
+            if pools_limit <= 0:
+                print(f"[STEP 3] Warning: limit must be positive. Received {pools_limit}. Defaulting to all pools.")
+                pools_limit = None
+        except ValueError:
+            print(f"[STEP 3] Warning: invalid limit '{limit_param}'. Defaulting to all pools.")
+            pools_limit = None
+
+    protocols_by_name = {protocol.get("name", "").lower(): protocol for protocol in protocols if protocol.get("name")}
+    
+    # Calculate security score for each pool
+    print(f"\n[STEP 3] Starting to calculate security scores for {len(pools)} pools...")
+    pools_with_scores = []
+    total_pools = len(pools)
+    
+    for idx, pool in enumerate(pools, 1):
+        project_name = pool.get("project", "").lower()
+        protocol = protocols_by_name.get(project_name)
         
-        protocol_with_score = protocol.copy()
-        protocol_with_score["securityScore"] = security_score
-        protocols_with_scores.append(protocol_with_score)
+        security_score = calculate_pool_security_score(pool, protocol)
         
-        # Show progress every 50 protocols or for the last one
-        if idx % 50 == 0 or idx == total_protocols:
-            print(f"[STEP 3] Progress: Calculated scores for {idx}/{total_protocols} protocols...")
+        pool_with_score = dict(pool)
+        pool_with_score["securityScore"] = security_score
+        
+        if protocol:
+            pool_with_score["protocolMeta"] = {
+                "id": protocol.get("id"),
+                "name": protocol.get("name"),
+                "symbol": protocol.get("symbol"),
+                "tvl": protocol.get("tvl"),
+                "chains": protocol.get("chains", []),
+                "change_1d": protocol.get("change_1d"),
+                "change_7d": protocol.get("change_7d"),
+            }
+        else:
+            pool_with_score["protocolMeta"] = None
+        
+        pools_with_scores.append(pool_with_score)
+        
+        # Show progress every 100 pools or for the last one
+        if idx % 100 == 0 or idx == total_pools:
+            print(f"[STEP 3] Progress: Calculated scores for {idx}/{total_pools} pools...")
     
     # Sort by security score (highest first)
-    print("[STEP 3] Sorting protocols by security score...")
-    protocols_with_scores.sort(key=lambda x: x.get("securityScore", 0), reverse=True)
+    print("[STEP 3] Sorting pools by security score...")
+    pools_with_scores.sort(key=lambda x: x.get("securityScore", 0), reverse=True)
     
-    print(f"[STEP 3] ✓ Completed: Calculated security scores for {len(protocols_with_scores)} protocols")
+    highest_score = pools_with_scores[0]
+    lowest_score = pools_with_scores[-1]
+    
+    print(f"[STEP 3] ✓ Completed: Calculated security scores for {len(pools_with_scores)} pools")
     print("\n📊 Results Summary:")
-    print(f"   - Total protocols: {len(protocols_with_scores)}")
-    print(f"   - Total pools: {len(pools)}")
-    print(f"   - Highest security score: {protocols_with_scores[0].get('securityScore', 0):.2f} ({protocols_with_scores[0].get('name', 'N/A')})")
-    print(f"   - Lowest security score: {protocols_with_scores[-1].get('securityScore', 0):.2f} ({protocols_with_scores[-1].get('name', 'N/A')})")
+    print(f"   - Total pools: {len(pools_with_scores)}")
+    print(f"   - Total protocols matched: {len(protocols_by_name)}")
+    print(f"   - Highest pool score: {highest_score.get('securityScore', 0):.2f} ({highest_score.get('project', 'N/A')} - {highest_score.get('symbol', 'N/A')})")
+    print(f"   - Lowest pool score: {lowest_score.get('securityScore', 0):.2f} ({lowest_score.get('project', 'N/A')} - {lowest_score.get('symbol', 'N/A')})")
     print("="*60 + "\n")
-    
+
+    response_pools = pools_with_scores[:pools_limit] if pools_limit is not None else pools_with_scores
+    if pools_limit is not None:
+        print(f"[STEP 3] Returning top {len(response_pools)} pools (limit={pools_limit})")
+
     return jsonify({
-        "data": protocols_with_scores,
+        "data": response_pools,
         "source": "defillama",
-        "poolsCount": len(pools),
-        "protocolsCount": len(protocols_with_scores)
+        "poolsCount": len(response_pools),
+        "protocolsCount": len(protocols_by_name),
+        "limitApplied": pools_limit if pools_limit is not None else "all"
     })
 
 
