@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAccount, useWalletClient } from "wagmi";
-import { formatUnits, parseUnits, zeroAddress } from "viem";
-import { useRouter } from 'next/navigation';
+import { erc20Abi, formatUnits, parseUnits, zeroAddress } from "viem";
+import type { Address } from "viem";
+import { useRouter } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,14 @@ import { TransactionWorkflowWidget, type TransactionWorkflowStep, type WalletExe
 import { mockStrategies } from "@/lib/mock-data";
 import { ChainType as LifiChainType, EVM, convertQuoteToRoute, createConfig, executeRoute, getQuote, type QuoteRequest, type RouteExtended, config as lifiConfig } from "@lifi/sdk";
 import { arbitrum } from "viem/chains";
-import { createContractCallStep, createLifiWorkflowSteps, type ContractCallStepMetadata } from "@/lib/lifi";
+import {
+  createContractCallStep,
+  createLifiWorkflowSteps,
+  createTokenApprovalStep,
+  getPublicClient,
+  type ContractCallStepMetadata,
+  type TokenApprovalStepMetadata,
+} from "@/lib/lifi";
 import type { ChainType as SupportedChainType } from "@/lib/types";
 
 const LIFI_INTEGRATOR = "defi-one-click";
@@ -36,16 +44,18 @@ const ETH_USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 const ARB_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
 const ARB_USDC_ADDRESS = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 const ETH_USDS_ADDERSS = "0xdC035D45d973E3EC169d2276DDab16f1e407384F";
-const BSC_USDT_DEC = 18
-const FROM_AMOUNT = 0.0001
+const BSC_USDT_DEC = 18;
+const FROM_AMOUNT = 0.0001;
+const SOURCE_TOKEN_ADDRESS: Address = zeroAddress;
+const SOURCE_TOKEN_SYMBOL = "ETH";
 const SOURCE_CHAIN_TYPE: SupportedChainType = "arbitrum";
-// const DESTINATION_CHAIN_TYPE: SupportedChainType = "arbitrum";
 const DESTINATION_CHAIN_TYPE: SupportedChainType = "ethereum";
 const CONTRACT_ADDRESS = "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd";
 const FUNCTION_SIG = "deposit(uint256,address,uint16)";
-const CALL_VARS = [0.01, "0x3A805eaFD90f081BCe9dcC0dc9aaC6e9b3cD5F05", 1];
+const CALL_VARS = [0.29*1e18, "0x3A805eaFD90f081BCe9dcC0dc9aaC6e9b3cD5F05", 1];
 const DEFAULT_LIFI_SLIPPAGE = 0.003;
 const DEST_TOKEN = ETH_USDS_ADDERSS;
+const LIFI_APPROVAL_SPENDER = process.env.NEXT_PUBLIC_LIFI_APPROVAL_SPENDER ?? "";
 
 const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
   {
@@ -136,25 +146,42 @@ export default function StrategiesPage() {
 
     const buildSteps = async () => {
       try {
-        const steps = await createLifiWorkflowSteps({
+        const lifiRouteSteps = await createLifiWorkflowSteps({
           sourceChain: SOURCE_CHAIN_TYPE,
-          sourceTokenAddress: zeroAddress,
+          sourceTokenAddress: SOURCE_TOKEN_ADDRESS,
           fromAmount: FROM_AMOUNT,
           destinationChain: DESTINATION_CHAIN_TYPE,
-          destinationTokenAddress: ARB_USDC_ADDRESS,
+          destinationTokenAddress: DEST_TOKEN,
           slippage: DEFAULT_LIFI_SLIPPAGE,
         });
 
-        steps.concat(createContractCallStep({
+        const approvalStep = await createTokenApprovalStep({
+                chain: DESTINATION_CHAIN_TYPE,
+                tokenAddress: DEST_TOKEN,
+                spenderAddress: CONTRACT_ADDRESS,
+                amount: +CALL_VARS[0]/1e18,
+                tokenSymbol: "IDK",
+                label: "Check Token Approval",
+                description: "Verify the router can spend your input token.",
+                successMessage: "Token approval ready for LI.FI route.",
+              })
+
+        const callStep = createContractCallStep({
           chain: DESTINATION_CHAIN_TYPE,
           contractAddress: CONTRACT_ADDRESS,
           functionSignature: FUNCTION_SIG,
-          variables: [],
+          variables: CALL_VARS,
           successMessage: "DONE!",
-        }))
+        });
+
+        const combinedSteps = [
+          ...lifiRouteSteps,
+          ...(approvalStep ? [approvalStep] : []),
+          callStep,
+        ];
 
         if (isMounted) {
-          setLifiSteps(steps);
+          setLifiSteps(combinedSteps);
         }
       } catch (error) {
         console.error("Failed to construct LI.FI workflow steps", error);
@@ -275,6 +302,59 @@ export default function StrategiesPage() {
                 receivedAmount && lastStep?.execution?.toToken?.symbol
                   ? `Route executed. Received ~${receivedAmount} ${lastStep.execution.toToken.symbol}.`
                   : lastProcess?.message ?? `Route executed via ${currentStep.label}.`,
+            };
+          },
+        };
+      }
+
+      if (step.metadata?.type === "tokenApproval") {
+        return {
+          ...step,
+          async execute(_provider, currentStep) {
+            const metadata = currentStep.metadata as TokenApprovalStepMetadata | undefined;
+
+            if (!metadata || !activeWalletClient || !activeWalletClient.account) {
+              throw new Error("Wallet client and approval metadata are required.");
+            }
+
+            const owner = activeWalletClient.account.address;
+            const requiredAmount = BigInt(metadata.requiredAmount);
+            const publicClient = getPublicClient(metadata.chain);
+
+            const currentAllowance = await publicClient.readContract({
+              address: metadata.tokenAddress,
+              abi: erc20Abi,
+              functionName: "allowance",
+              args: [owner, metadata.spenderAddress],
+            });
+
+            if (currentAllowance >= requiredAmount) {
+              return {
+                txHash: undefined,
+                message: metadata.successMessage ?? "Allowance already sufficient.",
+              };
+            }
+
+            const walletClientForChain =
+              (await ensureWalletOnChain(metadata.chainId)) ?? activeWalletClient;
+
+            if (!walletClientForChain.account) {
+              throw new Error("Active wallet client is missing an account.");
+            }
+
+            const txHash = await walletClientForChain.writeContract({
+              account: walletClientForChain.account,
+              address: metadata.tokenAddress,
+              abi: erc20Abi,
+              functionName: "approve",
+              args: [metadata.spenderAddress, requiredAmount],
+            });
+
+            return {
+              txHash,
+              message:
+                metadata.successMessage ??
+                `Approved ${metadata.tokenSymbol ?? "token"} for router ${metadata.spenderAddress}`,
             };
           },
         };

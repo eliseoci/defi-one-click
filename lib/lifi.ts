@@ -5,7 +5,7 @@ import { type ChainType, VIEM_CHAINS } from "@/lib/types";
 
 const publicClientCache = new Map<ChainType, PublicClient>();
 
-const getPublicClient = (chain: ChainType): PublicClient => {
+export const getPublicClient = (chain: ChainType): PublicClient => {
   const cachedClient = publicClientCache.get(chain);
   if (cachedClient) {
     return cachedClient;
@@ -181,11 +181,84 @@ export const createContractCallStep = ({
     successMessage,
   };
 
+  console.log({generatedId})
+
   return {
     id: generatedId,
     label: label ?? `Call ${metadata.functionName}`,
     description: description ?? `Invoke ${metadata.functionName} on ${chain}`,
     action: "contract",
+    fromChain: chain,
+    toChain: chain,
+    metadata,
+  };
+};
+
+export interface TokenApprovalStepMetadata {
+  type: "tokenApproval";
+  chain: ChainType;
+  chainId: number;
+  tokenAddress: Address;
+  spenderAddress: Address;
+  decimals: number;
+  requiredAmount: string;
+  tokenSymbol?: string;
+  successMessage?: string;
+}
+
+export interface CreateTokenApprovalStepParams {
+  chain: ChainType;
+  tokenAddress: Address;
+  spenderAddress: Address;
+  amount: number | string;
+  tokenSymbol?: string;
+  label?: string;
+  description?: string;
+  successMessage?: string;
+}
+
+export const createTokenApprovalStep = async ({
+  chain,
+  tokenAddress,
+  spenderAddress,
+  amount,
+  tokenSymbol,
+  label,
+  description,
+  successMessage,
+}: CreateTokenApprovalStepParams): Promise<TransactionWorkflowStep | null> => {
+  if (isNativeToken(tokenAddress)) {
+    return null;
+  }
+
+  const chainConfig = VIEM_CHAINS[chain];
+  if (!chainConfig) {
+    throw new Error(`Unsupported chain ${chain}`);
+  }
+
+  const decimals = await fetchTokenDecimals(chain, tokenAddress);
+  const amountAsString =
+    typeof amount === "number" ? amount.toString() : amount.toString();
+  const requiredAmount = parseUnits(amountAsString, decimals);
+
+  const metadata: TokenApprovalStepMetadata = {
+    type: "tokenApproval",
+    chain,
+    chainId: chainConfig.id,
+    tokenAddress,
+    spenderAddress,
+    decimals,
+    requiredAmount: requiredAmount.toString(),
+    tokenSymbol,
+    successMessage,
+  };
+
+  return {
+    id: sanitizeStepId(`approve-${chain}-${tokenAddress}-${spenderAddress}`),
+    label: label ?? `Approve ${tokenSymbol ?? "token"}`,
+    description:
+      description ?? `Ensure ${spenderAddress.slice(0, 6)} can spend ${tokenSymbol ?? "token"}`,
+    action: "approve",
     fromChain: chain,
     toChain: chain,
     metadata,
