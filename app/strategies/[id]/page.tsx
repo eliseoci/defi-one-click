@@ -316,9 +316,9 @@ export default function StrategyDetailPage() {
                     <div className="p-4 rounded-lg bg-muted/50">
                       <div className="text-sm text-muted-foreground mb-2">You deposit</div>
                       <div className="flex items-center justify-between">
-                        <div className="text-xl font-bold">{amount || "0"}</div>
+                        <div className="text-xl font-bold">{+amount*3900 || "0"}</div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">USDT0</span>
+                          <span className="text-sm font-medium">USDS</span>
                           <span className="text-lg">{strategy.tokenIcons[0]}</span>
                         </div>
                       </div>
