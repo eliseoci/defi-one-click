@@ -186,25 +186,25 @@ function formatTVL(tvl: number): string {
 export async function getTopPools(): Promise<Pool[]> {
   try {
     const response = await fetch(
-      "https://pro-api.llama.fi/436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1/yields/poolsOld?chain=base%2Carbitrum",
+      "https://pro-api.llama.fi/436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1/yields/poolsOld?chain=ethereum",
     )
     if (!response.ok) throw new Error("Failed to fetch pools")
 
     const data = await response.json()
     const allPools = data.data || []
 
-    // Filter and get top 2 from Base and Arbitrum by TVL
-    const basePools = allPools
-      .filter((pool: Pool) => pool.chain.toLowerCase() === "base")
+    const susdsPools = allPools
+      .filter(
+        (pool: Pool) =>
+          pool.chain.toLowerCase() === "ethereum" &&
+          pool.symbol.toLowerCase().includes("susds") &&
+          pool.tvlUsd > 1000000, // TVL > 1M USD
+      )
       .sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd)
-      .slice(0, 2)
+      .slice(0, 1) // Get only 1 pool
 
-    const arbitrumPools = allPools
-      .filter((pool: Pool) => pool.chain.toLowerCase() === "arbitrum")
-      .sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd)
-      .slice(0, 2)
-
-    return [...basePools, ...arbitrumPools]
+    console.log("[v0] Found sUSDS pools:", susdsPools)
+    return susdsPools
   } catch (error) {
     console.error("[v0] Error fetching top pools:", error)
     return []
