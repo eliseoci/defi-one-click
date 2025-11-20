@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { fetchPools, fetchProtocols, fetchPoolHistory, transformPoolToStrategy } from "@/lib/defillama-api"
+import { getTopPools, transformPoolToStrategy } from "@/lib/defillama-api"
 import { calcSecurityScoreWithMetrics } from "@/lib/calc-security-score"
 import { SecurityBreakdown } from "@/components/strategies/security-breakdown"
 import { mockTokens } from "@/lib/mock-data"
@@ -52,7 +52,7 @@ export default function StrategyDetailPage() {
       setLoading(true)
       try {
         console.log("[v0] Fetching strategy details for:", params.id)
-        const [pools, protocols] = await Promise.all([fetchPools(), fetchProtocols()])
+        const pools = await getTopPools()
 
         const pool = pools.find((p) => p.pool === params.id)
         if (!pool) {
@@ -61,30 +61,36 @@ export default function StrategyDetailPage() {
           return
         }
 
-        const protocol = protocols.find((p) => p.name.toLowerCase() === pool.project.toLowerCase())
-        const strategyData = transformPoolToStrategy(pool, protocol)
+        const strategyData = transformPoolToStrategy(pool)
 
-        // Fetch historical data
-        const history = await fetchPoolHistory(params.id as string)
-        const formattedHistory = history.slice(-30).map((h) => ({
-          date: new Date(h.timestamp).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          apy: h.apy || 0,
-          tvl: h.tvlUsd || 0,
-        }))
+        const formattedHistory = [
+          {
+            date: "30d avg",
+            apy: pool.apyMean30d || 0,
+            tvl: pool.tvlUsd || 0,
+          },
+          {
+            date: "Current",
+            apy: pool.apy || 0,
+            tvl: pool.tvlUsd || 0,
+          },
+        ]
 
-        // Calculate security metrics
         const metrics = await calcSecurityScoreWithMetrics({
-          audits: strategyData.audits,
-          rugged: strategyData.rugged,
-          tvl: strategyData.tvlNumeric,
-          listedAt: strategyData.listedAt,
-          volume24h: strategyData.volume24h,
-          apyHistory: history.map((h) => ({ apy: h.apy, time: new Date(h.timestamp).getTime() / 1000 })),
-          underlyingSymbols: strategyData.underlyingSymbols,
+          audits: "Unknown",
+          rugged: false,
+          tvl: pool.tvlUsd,
+          listedAt: Date.now() / 1000 - 365 * 24 * 60 * 60,
+          volume24h: pool.volumeUsd1d || 0,
+          apyHistory: [
+            { apy: pool.apyMean30d, time: Date.now() / 1000 - 30 * 24 * 60 * 60 },
+            { apy: pool.apy, time: Date.now() / 1000 },
+          ],
+          underlyingSymbols: pool.underlyingTokens,
         })
 
         console.log("[v0] Strategy loaded:", strategyData)
-        setStrategy({ ...strategyData, safetyScore: metrics.totalScore })
+        setStrategy({ ...strategyData, safetyScore: pool.securityScore })
         setSecurityMetrics(metrics)
         setChartData(formattedHistory)
       } catch (error) {
@@ -139,7 +145,6 @@ export default function StrategyDetailPage() {
       <DashboardHeader />
 
       <main className="container mx-auto p-4 md:p-6 lg:p-8">
-        {/* Back Button */}
         <Link href="/strategies">
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -147,7 +152,6 @@ export default function StrategyDetailPage() {
           </Button>
         </Link>
 
-        {/* Header */}
         <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
           <div className="flex items-center gap-4">
             <div className="flex items-center -space-x-2">
@@ -171,6 +175,14 @@ export default function StrategyDetailPage() {
                 <Separator orientation="vertical" className="h-4" />
                 <span className="text-sm uppercase font-medium">PLATFORM</span>
                 <span className="text-sm">{strategy.protocol}</span>
+                {strategy.poolAddress && (
+                  <>
+                    <Separator orientation="vertical" className="h-4" />
+                    <span className="text-xs font-mono">
+                      {strategy.poolAddress.slice(0, 6)}...{strategy.poolAddress.slice(-4)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -186,7 +198,6 @@ export default function StrategyDetailPage() {
           </div>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
           <Card>
             <CardContent className="pt-6">
@@ -224,11 +235,8 @@ export default function StrategyDetailPage() {
           </Card>
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid lg:grid-cols-[1fr_400px] gap-6">
-          {/* Left Column - Charts & Info */}
           <div className="space-y-6">
-            {/* Historical Rate Chart */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -282,11 +290,9 @@ export default function StrategyDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Security Score Breakdown */}
             {securityMetrics && <SecurityBreakdown metrics={securityMetrics} />}
           </div>
 
-          {/* Right Column - Deposit/Withdraw */}
           <div className="space-y-6">
             <Card>
               <CardContent className="pt-6">
@@ -297,7 +303,6 @@ export default function StrategyDetailPage() {
                   </TabsList>
 
                   <TabsContent value="deposit" className="space-y-4 mt-0">
-                    {/* Token Selection */}
                     <div className="space-y-2">
                       <Label className="flex items-center gap-1 text-muted-foreground">
                         <span className="text-lg">{selectedTokenData?.icon}</span>
@@ -320,7 +325,6 @@ export default function StrategyDetailPage() {
                       </Select>
                     </div>
 
-                    {/* Amount Input */}
                     <div className="space-y-2">
                       <div className="relative">
                         <Input
@@ -354,7 +358,6 @@ export default function StrategyDetailPage() {
                       </div>
                     </div>
 
-                    {/* You deposit section */}
                     <div className="p-4 rounded-lg bg-muted/50">
                       <div className="text-sm text-muted-foreground mb-2">You deposit</div>
                       <div className="flex items-center justify-between">
@@ -367,14 +370,12 @@ export default function StrategyDetailPage() {
                       <div className="text-sm text-muted-foreground mt-1">~$0</div>
                     </div>
 
-                    {/* Deposit Button */}
                     <Button className="w-full bg-primary hover:bg-primary/90" size="lg">
                       Deposit
                     </Button>
 
                     <Separator />
 
-                    {/* Fees */}
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground flex items-center gap-1">

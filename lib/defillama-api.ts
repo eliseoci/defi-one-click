@@ -31,48 +31,55 @@ export type Protocol = {
 }
 
 export type Pool = {
-  chain: string
-  project: string
-  symbol: string
-  tvlUsd: number
-  apyBase: number
-  apyReward: number
   apy: number
-  rewardTokens: string[]
-  pool: string
+  apyBase: number | null
+  apyBase7d: number | null
+  apyBaseInception: number | null
+  apyMean30d: number
+  apyMeanExpanding: number
   apyPct1D: number
-  apyPct7D: number
   apyPct30D: number
-  stablecoin: boolean
-  ilRisk: string
+  apyPct7D: number
+  apyReward: number | null
+  apyStdExpanding: number
+  chain: string
+  chain_factorized: number
+  count: number
   exposure: string
+  il7d: number | null
+  ilRisk: string
+  mu: number
+  outlier: boolean
+  pool: string
+  poolAddress: string
+  poolMeta: string | null
+  pool_old: string
   predictions: {
+    binnedConfidence: number
     predictedClass: string
     predictedProbability: number
-    binnedConfidence: number
   }
-  poolMeta: string | null
-  mu: number
+  project: string
+  project_factorized: number
+  protocolMeta: string | null
+  return: number
+  rewardTokens: string[] | null
+  securityScore: number
   sigma: number
-  count: number
-  outlier: boolean
+  stablecoin: boolean
+  symbol: string
+  timestamp: string
+  tvlUsd: number
   underlyingTokens: string[]
-  il7d: number
-  apyBase7d: number
-  apyMean30d: number
-  volumeUsd1d: number
-  volumeUsd7d: number
-  apyBaseInception: number
+  url: string
+  volumeUsd1d: number | null
+  volumeUsd7d: number | null
 }
 
 export type HistoricalAPY = {
-  timestamp: string
+  // Define the HistoricalAPY type here based on expected data structure
+  date: string
   apy: number
-  apyBase: number
-  apyReward: number
-  tvlUsd: number
-  il7d: number | null
-  apyBase7d: number | null
 }
 
 // Fetch all protocols
@@ -149,14 +156,16 @@ export async function fetchTokenData(symbol: string) {
 // Transform pool data to strategy format
 export function transformPoolToStrategy(pool: Pool, protocol?: Protocol) {
   const tokens = pool.underlyingTokens || [pool.symbol]
-  const tokenIcons = tokens.slice(0, 3).map(() => "💎") // Placeholder, would need token icon mapping
+  const tokenIcons = tokens.slice(0, 3).map(() => "💎")
 
   return {
     id: pool.pool,
-    name: pool.symbol,
+    name: `${pool.symbol} - ${pool.project}`,
     protocol: pool.project,
     chain: pool.chain,
+    poolAddress: pool.poolAddress,
     currentApy: pool.apy || 0,
+    apyMean30d: pool.apyMean30d || 0,
     dailyYield: (pool.apy || 0) / 365,
     tvl: formatTVL(pool.tvlUsd),
     tvlNumeric: pool.tvlUsd,
@@ -166,13 +175,15 @@ export function transformPoolToStrategy(pool: Pool, protocol?: Protocol) {
     tokenIcons,
     isNew: false,
     isBoosted: false,
-    audits: protocol?.audits || "No audits",
+    audits: protocol?.audits || "Unknown",
     listedAt: protocol?.listedAt,
-    volume24h: pool.volumeUsd1d,
+    volume24h: pool.volumeUsd1d || 0,
     apyHistory: [],
     underlyingSymbols: tokens,
     rugged: false,
-    safetyScore: 0, // Will be calculated
+    safetyScore: pool.securityScore || 0,
+    predictions: pool.predictions,
+    url: pool.url,
   }
 }
 
@@ -189,15 +200,13 @@ export async function getTopPools(): Promise<Pool[]> {
     if (!response.ok) throw new Error("Failed to fetch pools")
 
     console.log("[v0] Fetching pools from scores endpoint...")
-    const data = await response.json()
-    console.log("[v0] Scores endpoint response:", data)
+    const result = await response.json()
+    console.log("[v0] Scores endpoint response:", result)
 
-    // The endpoint should return an array of pools with scores
-    const pools = Array.isArray(data) ? data : data.data || []
+    const pools = result.data || []
 
     console.log("[v0] Total pools received:", pools.length)
 
-    // Return the pools directly since the endpoint already filters for SUSDS
     return pools
   } catch (error) {
     console.error("[v0] Error fetching pools from scores endpoint:", error)

@@ -157,9 +157,9 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                     <span className="font-semibold truncate">{strategy.name}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {strategy.protocol} • {strategy.chain}
-                    </span>
+                    <span className="text-xs text-muted-foreground">{strategy.protocol}</span>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <span className="text-xs text-muted-foreground">{strategy.chain}</span>
                   </div>
                 </div>
               </div>
