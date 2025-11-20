@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from 'next/navigation';
 import dynamic from "next/dynamic";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance } from "wagmi";
+import type { Address } from "viem";
+import { mainnet } from "wagmi/chains";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,10 +27,13 @@ const HistoricalRateCard = dynamic(() => import("@/components/strategies/histori
   ssr: false,
 });
 
+const SUSDS_CONTRACT_ADDRESS = "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd" as Address;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
+
 export default function StrategyDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const [selectedToken, setSelectedToken] = useState<string>("USDC");
@@ -38,6 +43,28 @@ export default function StrategyDetailPage() {
   const strategy = mockStrategies.find((s) => s.id === params.id);
   const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const { transactionWorkflowSteps, walletExecutionProvider, isWalletReady } = useTransactionWorkflow();
+  const { data: susdsBalance, isPending: isSusdsBalancePending } = useBalance({
+    address: address ?? ZERO_ADDRESS,
+    token: SUSDS_CONTRACT_ADDRESS,
+    chainId: mainnet.id,
+    query: {
+      enabled: Boolean(address),
+      staleTime: 30_000,
+    },
+  });
+
+  const formattedSusdsBalance = useMemo(() => {
+    if (!address) {
+      return "0.00";
+    }
+    if (isSusdsBalancePending) {
+      return "Fetching...";
+    }
+    const value = susdsBalance?.formatted ?? "0";
+    return Number.parseFloat(value).toLocaleString(undefined, {
+      maximumFractionDigits: 4,
+    });
+  }, [address, susdsBalance?.formatted, isSusdsBalancePending]);
 
   useEffect(() => {
     setMounted(true);
@@ -162,7 +189,10 @@ export default function StrategyDetailPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground mb-1">YOUR DEPOSIT</div>
-              <div className="text-2xl font-bold">{strategy.deposited}</div>
+              <div className="text-2xl font-bold flex items-center gap-2">
+                <span>{formattedSusdsBalance}</span>
+                <Badge variant="outline">sUSDS</Badge>
+              </div>
             </CardContent>
           </Card>
           <Card>
