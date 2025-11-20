@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Wallet, Search, Filter } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { ConnectWalletButton } from "@/components/wallets/connect-wallet-button";
 import { StrategiesHeader } from "@/components/strategies/strategies-header";
 import { StrategiesFilters } from "@/components/strategies/strategies-filters";

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useModal } from "connectkit";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,11 @@ export function DashboardHeader() {
   const { address } = useAccount();
   const { disconnect } = useDisconnect();
   const { openProfile } = useModal();
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const handleDisconnect = async () => {
     disconnect();
@@ -64,7 +70,9 @@ export function DashboardHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Wallet className="h-4 w-4" />
-                <span className="hidden sm:inline">{formatAddress(address!)}</span>
+                <span className="hidden sm:inline">
+                  {hydrated && address ? formatAddress(address) : "Wallet"}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
