@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from "next/dynamic";
 import { useAccount } from "wagmi";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,10 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { mockStrategies, mockTokens, mockHistoricalRates } from "@/lib/mock-data";
+import { mockStrategies, mockTokens } from "@/lib/mock-data";
 import { ArrowLeft, Share2, Bookmark, ChevronDown, Info, TrendingUp } from 'lucide-react';
 import Link from "next/link";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+
+const HistoricalRateCard = dynamic(() => import("@/components/strategies/historical-rate-card"), {
+  ssr: false,
+});
 
 export default function StrategyDetailPage() {
   const params = useParams();
@@ -26,7 +30,6 @@ export default function StrategyDetailPage() {
   const [selectedToken, setSelectedToken] = useState<string>("USDC");
   const [amount, setAmount] = useState<string>("");
   const [percentage, setPercentage] = useState<number>(0);
-  const [chartView, setChartView] = useState<"APY" | "TVL" | "Price">("APY");
 
   useEffect(() => {
     setMounted(true);
@@ -156,155 +159,7 @@ export default function StrategyDetailPage() {
           </Card>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-          {/* Left Column - Charts & Info */}
-          <div className="space-y-6 min-w-0">
-            {/* Historical Rate Chart */}
-            <Card className="min-w-0">
-              <CardHeader>
-                <div className="flex flex-wrap items-center gap-4 justify-between">
-                  <CardTitle>Historical rate</CardTitle>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant={chartView === "APY" ? "default" : "outline"}
-                      onClick={() => setChartView("APY")}
-                    >
-                      APY
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={chartView === "TVL" ? "default" : "outline"}
-                      onClick={() => setChartView("TVL")}
-                    >
-                      TVL
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={chartView === "Price" ? "default" : "outline"}
-                      onClick={() => setChartView("Price")}
-                    >
-                      Price
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pl-0">
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={mockHistoricalRates}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#3b3b3b" />
-                    <XAxis
-                      dataKey="date"
-                      stroke="#FFFFFF"
-                      fontSize={12}
-                      tick={{ fill: "#E2E8F0" }}
-                    />
-                    <YAxis
-                      stroke="#FFFFFF"
-                      fontSize={12}
-                      tick={{ fill: "#E2E8F0" }}
-                      domain={chartView === "APY" ? [0, 20] : undefined}
-                    />
-                    <Tooltip
-                      cursor={false}
-                      contentStyle={{
-                        backgroundColor: "#ffffff",
-                        border: "1px solid #E2E8F0",
-                        borderRadius: "8px",
-                        color: "#0f172a",
-                      }}
-                      labelStyle={{ color: "#475569" }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey={chartView === "APY" ? "apy" : "tvl"}
-                      stroke="#ffffff"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap items-center gap-4 px-3 sm:px-4 mt-4 text-xs text-muted-foreground">
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked className="rounded" />
-                    <span>AVERAGE</span>
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" defaultChecked className="rounded" />
-                    <span>MOVING AVERAGE</span>
-                  </label>
-                  <div className="ml-auto flex gap-2 flex-wrap">
-                    <Button size="sm" variant="ghost" className="h-6 text-xs">1D</Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-xs">1W</Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-xs">1M</Button>
-                    <Button size="sm" variant="default" className="h-6 text-xs">1Y</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Safety Score */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Safety Score</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Low-complexity strategy
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Beefy</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Very low or zero expected IL
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Asset</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      High market-capitalization, lower volatility asset
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Asset</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Platform audited by trusted reviewer
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Platform</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      Project contracts are verified
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-sm text-muted-foreground">Platform</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column - Deposit/Withdraw */}
+        {/* Right Column - Deposit/Withdraw */}
           <div className="space-y-6">
             <Card>
               <CardContent className="pt-6">
@@ -321,21 +176,7 @@ export default function StrategyDetailPage() {
                         <span className="text-lg">{selectedTokenData?.icon}</span>
                         Select token
                       </Label>
-                      <Select value={selectedToken} onValueChange={setSelectedToken}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockTokens.map((token) => (
-                            <SelectItem key={token.symbol} value={token.symbol}>
-                              <div className="flex items-center gap-2">
-                                <span>{token.icon}</span>
-                                <span>{token.symbol}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      
                     </div>
 
                     {/* Amount Input */}
@@ -348,14 +189,23 @@ export default function StrategyDetailPage() {
                           onChange={(e) => setAmount(e.target.value)}
                           className="text-2xl h-14 pr-24"
                         />
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="absolute right-2 top-2"
-                        >
-                          <span className="mr-1">{selectedTokenData?.icon}</span>
-                          Select <ChevronDown className="ml-1 h-3 w-3" />
-                        </Button>
+                        <div className="absolute right-2 top-3">
+                          <Select value={selectedToken} onValueChange={setSelectedToken}>
+                            <SelectTrigger className="w-auto justify-between min-w-[4rem]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockTokens.map((token) => (
+                                <SelectItem key={token.symbol} value={token.symbol}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{token.icon}</span>
+                                    <span>{token.symbol}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">$0</span>
@@ -426,6 +276,73 @@ export default function StrategyDetailPage() {
                 </Tabs>
               </CardContent>
             </Card>
+
+        {/* Main Content Grid */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
+          {/* Left Column - Charts & Info */}
+          <div className="space-y-6 min-w-0">
+            {/* Historical Rate Chart */}
+            <HistoricalRateCard />
+
+            {/* Safety Score */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Safety Score</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      Low-complexity strategy
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Beefy</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      Very low or zero expected IL
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Asset</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      High market-capitalization, lower volatility asset
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Asset</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      Platform audited by trusted reviewer
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Platform</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-green-500 mt-0.5" />
+                  <div>
+                    <div className="font-medium flex items-center gap-2">
+                      Project contracts are verified
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-sm text-muted-foreground">Platform</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
             {/* Insurance Section */}
             <Card>
