@@ -155,16 +155,32 @@ export interface Token {
   symbol: string;
   name: string;
   icon: string;
+  logo?: string;
   balance: number;
   chain: string;
 }
 
 export const mockTokens: Token[] = [
-  { symbol: 'ETH', name: 'Ethereum', icon: '⟠', balance: 2.45, chain: 'Ethereum' },
-  { symbol: 'USDC', name: 'USD Coin', icon: '💵', balance: 5000, chain: 'Ethereum' },
-  { symbol: 'USDT', name: 'Tether', icon: '💲', balance: 3200, chain: 'Ethereum' },
-  { symbol: 'WBTC', name: 'Wrapped Bitcoin', icon: '₿', balance: 0.15, chain: 'Ethereum' },
-  { symbol: 'DAI', name: 'Dai', icon: '💰', balance: 1500, chain: 'Ethereum' },
+  { symbol: 'ETH', name: 'Ethereum', icon: '⟠', logo: '/icons/chains/ethereum-eth-logo.svg', balance: 2.45, chain: 'Ethereum' },
+  { symbol: 'USDC', name: 'USD Coin', icon: '💵', logo: '/icons/tokens/usd-coin-usdc-logo.svg', balance: 5000, chain: 'Ethereum' },
+  { symbol: 'USDT', name: 'Tether', icon: '💲', logo: '/icons/tokens/tether-usdt-logo.svg', balance: 3200, chain: 'Ethereum' },
+  { symbol: 'WBTC', name: 'Wrapped Bitcoin', icon: '₿', logo: '/icons/tokens/bitcoin-btc-logo.svg', balance: 0.15, chain: 'Ethereum' },
+  { symbol: 'DAI', name: 'Dai', icon: '💰', logo: '/icons/tokens/multi-collateral-dai-dai-logo.svg', balance: 1500, chain: 'Ethereum' },
+];
+
+export interface Chain {
+  id: string;
+  name: string;
+  icon: string;
+  network: string;
+  logo?: string;
+}
+
+export const mockChains: Chain[] = [
+  { id: 'eth', name: 'Ethereum', icon: '⟠', logo: '/icons/chains/ethereum-eth-logo.svg', network: 'Mainnet' },
+  { id: 'arb', name: 'Arbitrum', icon: '🌀', logo: '/icons/chains/arbitrum-arb-logo.svg', network: 'Rollup' },
+  { id: 'poly', name: 'Polygon', icon: '🔺', logo: '/icons/chains/polygon-matic-logo.svg', network: 'PoS' },
+  { id: 'bsc', name: 'BNB Chain', icon: '⚡', logo: '/icons/chains/bnb-bnb-logo.svg', network: 'BSC' },
 ];
 
 export interface HistoricalRate {

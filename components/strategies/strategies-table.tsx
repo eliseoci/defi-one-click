@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Plus } from 'lucide-react';
+import { ArrowUpDown } from 'lucide-react';
 import { Strategy } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
-import { QuickDepositDialog } from "./quick-deposit-dialog";
 import { useRouter } from 'next/navigation';
 
 interface StrategiesTableProps {
@@ -16,8 +14,6 @@ interface StrategiesTableProps {
 
 export function StrategiesTable({ strategies }: StrategiesTableProps) {
   const router = useRouter();
-  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
 
   const getSafetyColor = (score: number) => {
     if (score >= 4) return "text-green-500";
@@ -27,12 +23,6 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
 
   const handleRowClick = (strategyId: string) => {
     router.push(`/strategies/${strategyId}`);
-  };
-
-  const handleQuickDeposit = (e: React.MouseEvent, strategy: Strategy) => {
-    e.stopPropagation();
-    setSelectedStrategy(strategy);
-    setDepositDialogOpen(true);
   };
 
   return (
@@ -72,15 +62,6 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                     </div>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => handleQuickDeposit(e, strategy)}
-                  className="gap-1 shrink-0"
-                >
-                  <Plus className="h-3 w-3" />
-                  Deposit
-                </Button>
               </div>
 
               {/* Strategy Stats */}
@@ -129,7 +110,7 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
       {/* Desktop View */}
       <Card className="overflow-hidden hidden md:block">
         {/* Table Header */}
-        <div className="grid grid-cols-[1fr_100px_120px_120px_80px_100px] gap-4 p-4 border-b bg-muted/50 text-xs font-medium text-muted-foreground uppercase">
+        <div className="grid grid-cols-[1fr_100px_120px_120px_80px] gap-4 p-4 border-b bg-muted/50 text-xs font-medium text-muted-foreground uppercase">
           <div>Strategy</div>
           <div className="text-right">
             <Button variant="ghost" size="sm" className="h-auto p-0 text-xs">
@@ -151,7 +132,6 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
               Safety <ArrowUpDown className="ml-1 h-3 w-3" />
             </Button>
           </div>
-          <div className="text-center">Actions</div>
         </div>
 
         {/* Table Body */}
@@ -160,7 +140,7 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
             <div
               key={strategy.id}
               onClick={() => handleRowClick(strategy.id)}
-              className="grid grid-cols-[1fr_100px_120px_120px_80px_100px] gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+              className="grid grid-cols-[1fr_100px_120px_120px_80px] gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer"
             >
               {/* Strategy Name & Info */}
               <div className="flex items-center gap-3 min-w-0">
@@ -228,17 +208,6 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                 </div>
               </div>
 
-              <div className="flex justify-center items-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => handleQuickDeposit(e, strategy)}
-                  className="gap-1"
-                >
-                  <Plus className="h-3 w-3" />
-                  Deposit
-                </Button>
-              </div>
             </div>
           ))}
         </div>
@@ -250,12 +219,6 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
           </div>
         )}
       </Card>
-
-      <QuickDepositDialog
-        open={depositDialogOpen}
-        onOpenChange={setDepositDialogOpen}
-        strategy={selectedStrategy}
-      />
     </>
   );
 }

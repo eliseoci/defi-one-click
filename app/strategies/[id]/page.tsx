@@ -13,9 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { mockStrategies, mockTokens } from "@/lib/mock-data";
+import { mockStrategies, mockTokens, mockChains } from "@/lib/mock-data";
 import { ArrowLeft, Share2, Bookmark, ChevronDown, Info, TrendingUp } from 'lucide-react';
 import Link from "next/link";
+import Image from "next/image";
 
 const HistoricalRateCard = dynamic(() => import("@/components/strategies/historical-rate-card"), {
   ssr: false,
@@ -28,13 +29,21 @@ export default function StrategyDetailPage() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const [selectedToken, setSelectedToken] = useState<string>("USDC");
-  const [selectedChain, setSelectedChain] = useState<string>("Arbitrum")
+  const [selectedChain, setSelectedChain] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
   const [percentage, setPercentage] = useState<number>(0);
+  const strategy = mockStrategies.find((s) => s.id === params.id);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (strategy?.chain && !selectedChain) {
+      const defaultChain = mockChains.find((chain) => chain.name === strategy.chain)?.id ?? "";
+      setSelectedChain(defaultChain);
+    }
+  }, [strategy?.chain, selectedChain]);
 
   useEffect(() => {
     if (mounted && !isConnected) {
@@ -45,8 +54,6 @@ export default function StrategyDetailPage() {
   if (!mounted) {
     return null;
   }
-
-  const strategy = mockStrategies.find((s) => s.id === params.id);
 
   if (!strategy) {
     return (
@@ -63,6 +70,7 @@ export default function StrategyDetailPage() {
   }
 
   const selectedTokenData = mockTokens.find(t => t.symbol === selectedToken);
+  const selectedChainData = mockChains.find((chain) => chain.id === selectedChain || chain.name === selectedChain);
   const maxAmount = selectedTokenData?.balance || 0;
 
   const handlePercentage = (pct: number) => {
@@ -171,27 +179,40 @@ export default function StrategyDetailPage() {
                   </TabsList>
 
                   <TabsContent value="deposit" className="space-y-4 mt-0">
-                    {/* Token Selection */}
+                    {/* Chain Selection */}
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1 text-muted-foreground">
-                        <span className="text-lg">{selectedTokenData?.icon}</span>
-                        Select token
+                      <Label className="flex items-center gap-2 text-muted-foreground">
+                        
+                        Select chain
                       </Label>
-                      <Select value={selectedChain} onValueChange={setSelectedChain}>
-                            <SelectTrigger className="w-auto justify-between min-w-[4rem]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {mockTokens.map((token) => (
-                                <SelectItem key={token.symbol} value={token.symbol}>
-                                  <div className="flex items-center gap-2">
-                                    <span>{token.icon}</span>
-                                    <span>{token.symbol}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      <Select value={selectedChain || undefined} onValueChange={setSelectedChain}>
+                        <SelectTrigger className="w-auto justify-between min-w-[6rem]">
+                          <SelectValue placeholder="Chain" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockChains.map((chain) => (
+                            <SelectItem key={chain.id} value={chain.id}>
+                              <div className="flex items-center gap-2">
+                                {chain.logo ? (
+                                  <Image
+                                    src={chain.logo}
+                                    alt={`${chain.name} logo`}
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5"
+                                  />
+                                ) : (
+                                  <span>{chain.icon}</span>
+                                )}
+                                <span className="font-medium">{chain.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {chain.network}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       
                     </div>
 
@@ -214,7 +235,17 @@ export default function StrategyDetailPage() {
                               {mockTokens.map((token) => (
                                 <SelectItem key={token.symbol} value={token.symbol}>
                                   <div className="flex items-center gap-2">
-                                    <span>{token.icon}</span>
+                                    {token.logo ? (
+                                      <Image
+                                        src={token.logo}
+                                        alt={`${token.name} logo`}
+                                        width={20}
+                                        height={20}
+                                        className="h-5 w-5"
+                                      />
+                                    ) : (
+                                      <span>{token.icon}</span>
+                                    )}
                                     <span>{token.symbol}</span>
                                   </div>
                                 </SelectItem>
