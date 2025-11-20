@@ -49,6 +49,7 @@ interface TransactionWorkflowWidgetProps {
   steps: TransactionWorkflowStep[];
   walletProvider?: WalletExecutionProvider;
   onComplete?: () => void;
+  variant?: "default" | "minimal";
 }
 
 type StepStatus = "idle" | "running" | "success" | "error";
@@ -111,6 +112,7 @@ export function TransactionWorkflowWidget({
   steps,
   walletProvider,
   onComplete,
+  variant = "default",
 }: TransactionWorkflowWidgetProps) {
   const provider = walletProvider ?? mockWalletProvider;
   const [stepStates, setStepStates] = useState<Record<string, StepState>>(() =>
@@ -196,6 +198,81 @@ export function TransactionWorkflowWidget({
     setExecutionLog((prev) => [...prev, "🎉 Workflow completed"]);
     onComplete?.();
   };
+
+  if (variant === "minimal") {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {completedSteps} / {steps.length} steps ready
+          </span>
+          <Badge variant="outline" className="gap-2 text-[11px]">
+            <ShieldCheck className="h-4 w-4" />
+            {provider.name}
+          </Badge>
+        </div>
+
+        <div className="space-y-2">
+          {steps.map((step, index) => {
+            const state = stepStates[step.id] ?? { status: "idle" };
+
+            return (
+              <div
+                key={step.id}
+                className="flex items-center justify-between rounded-xl border border-border/70 bg-background/80 px-4 py-3"
+              >
+                <div className="space-y-1">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground/80">
+                    Step {index + 1}
+                  </p>
+                  <p className="text-sm font-medium text-foreground">{step.label}</p>
+                </div>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide",
+                    state.status === "success" && "bg-emerald-500/10 text-emerald-500",
+                    state.status === "running" && "bg-blue-500/10 text-blue-500",
+                    state.status === "error" && "bg-destructive/10 text-destructive",
+                    state.status === "idle" && "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {state.status === "running" && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {statusLabels[state.status]}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {globalError && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <AlertCircle className="mr-2 h-4 w-4" />
+            {globalError}
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={handleReset} disabled={isExecuting} className="flex-1">
+            Reset
+          </Button>
+          <Button
+            onClick={executeWorkflow}
+            disabled={!steps.length || isExecuting}
+            className="flex-1"
+          >
+            {isExecuting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Executing…
+              </>
+            ) : (
+              "Start Flow"
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card className="bg-card border-border">

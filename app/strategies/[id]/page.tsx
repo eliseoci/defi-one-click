@@ -13,10 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import Image from "next/image";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { TransactionWorkflowWidget } from "@/components/execute/transaction-workflow-widget";
 import { mockStrategies, mockTokens, mockChains } from "@/lib/mock-data";
 import { ArrowLeft, Share2, Bookmark, ChevronDown, Info, TrendingUp } from 'lucide-react';
 import Link from "next/link";
-import Image from "next/image";
+import { useTransactionWorkflow } from "@/hooks/use-transaction-workflow";
 
 const HistoricalRateCard = dynamic(() => import("@/components/strategies/historical-rate-card"), {
   ssr: false,
@@ -33,6 +36,8 @@ export default function StrategyDetailPage() {
   const [amount, setAmount] = useState<string>("");
   const [percentage, setPercentage] = useState<number>(0);
   const strategy = mockStrategies.find((s) => s.id === params.id);
+  const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
+  const { transactionWorkflowSteps, walletExecutionProvider, isWalletReady } = useTransactionWorkflow();
 
   useEffect(() => {
     setMounted(true);
@@ -287,7 +292,11 @@ export default function StrategyDetailPage() {
                     </div>
 
                     {/* Switch to Chain Button */}
-                    <Button className="w-full bg-green-500 hover:bg-green-600 text-white" size="lg">
+                    <Button
+                      className="w-full bg-green-500 hover:bg-green-600 text-white"
+                      size="lg"
+                      onClick={() => setIsWorkflowOpen(true)}
+                    >
                       Let's go!
                     </Button>
 
@@ -403,6 +412,42 @@ export default function StrategyDetailPage() {
           </div>
         </div>
       </main>
+      <Dialog open={isWorkflowOpen} onOpenChange={setIsWorkflowOpen}>
+        <DialogContent
+          variant="bottom-sheet"
+          className="space-y-6 rounded-t-3xl p-5"
+          showCloseButton={false}
+        >
+          <div className="mx-auto h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Transaction Workflow</p>
+              <p className="text-lg font-semibold text-foreground">Pending steps</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => setIsWorkflowOpen(false)}>
+              Close
+            </Button>
+          </div>
+
+          {walletExecutionProvider ? (
+            <TransactionWorkflowWidget
+              steps={transactionWorkflowSteps}
+              walletProvider={walletExecutionProvider}
+              variant="minimal"
+            />
+          ) : (
+            <div className="rounded-xl border border-dashed border-muted-foreground/40 px-4 py-3 text-sm text-muted-foreground">
+              Initializing wallet provider… ensure your wallet is connected and unlocked.
+            </div>
+          )}
+
+          {!isWalletReady && (
+            <p className="text-xs text-muted-foreground">
+              Connect a wallet to run the workflow with your account. You can still preview the steps.
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
