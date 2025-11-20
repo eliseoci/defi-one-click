@@ -1,6 +1,6 @@
-"use client";
+"use client"
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,26 +8,26 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Bell, Wallet, Settings, LogOut, Menu, Zap } from 'lucide-react';
-import Link from "next/link";
-import { useRouter } from 'next/navigation';
-import { Badge } from "@/components/ui/badge";
-import { useAccount, useDisconnect } from "wagmi";
+} from "@/components/ui/dropdown-menu"
+import { Bell, Wallet, Settings, LogOut, Menu, Zap } from "lucide-react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { Badge } from "@/components/ui/badge"
+import { useAccount, useDisconnect } from "@/lib/wallet-context"
 
 export function DashboardHeader() {
-  const router = useRouter();
-  const { address } = useAccount();
-  const { disconnect } = useDisconnect();
+  const router = useRouter()
+  const { address } = useAccount()
+  const { disconnect } = useDisconnect()
 
   const handleDisconnect = async () => {
-    disconnect();
-    router.push("/");
-  };
+    disconnect()
+    router.push("/")
+  }
 
   const formatAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
@@ -49,7 +49,7 @@ export function DashboardHeader() {
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
-            <Badge 
+            <Badge
               className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
               variant="destructive"
             >
@@ -60,7 +60,7 @@ export function DashboardHeader() {
           {/* Wallet Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
+              <Button variant="outline" className="gap-2 bg-transparent">
                 <Wallet className="h-4 w-4" />
                 <span className="hidden sm:inline">{formatAddress(address!)}</span>
               </Button>
@@ -94,12 +94,14 @@ export function DashboardHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
-                <Link href="/strategies" className="cursor-pointer">Strategies</Link>
+                <Link href="/strategies" className="cursor-pointer">
+                  Strategies
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
     </header>
-  );
+  )
 }
