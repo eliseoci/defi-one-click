@@ -1,44 +1,43 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Plus } from 'lucide-react';
-import { Strategy } from "@/lib/mock-data";
-import { cn } from "@/lib/utils";
-import { QuickDepositDialog } from "./quick-deposit-dialog";
-import { SafetyScoreDisplay } from "./safety-score-display";
-import { useRouter } from 'next/navigation';
+import type React from "react"
+
+import { useState } from "react"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { ArrowUpDown, Plus } from "lucide-react"
+import type { Strategy } from "@/lib/mock-data"
+import { QuickDepositDialog } from "./quick-deposit-dialog"
+import { SafetyScoreDisplay } from "./safety-score-display"
+import { useRouter } from "next/navigation"
 
 interface StrategiesTableProps {
-  strategies: Strategy[];
+  strategies: Strategy[]
 }
 
 export function StrategiesTable({ strategies }: StrategiesTableProps) {
-  const router = useRouter();
-  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null);
+  const router = useRouter()
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false)
+  const [selectedStrategy, setSelectedStrategy] = useState<Strategy | null>(null)
 
   const getSafetyColor = (score: number) => {
-    if (score >= 4) return "text-green-500";
-    if (score >= 3) return "text-yellow-500";
-    return "text-orange-500";
-  };
+    if (score >= 4) return "text-green-500"
+    if (score >= 3) return "text-yellow-500"
+    return "text-orange-500"
+  }
 
   const handleRowClick = (strategyId: string) => {
-    router.push(`/strategies/${strategyId}`);
-  };
+    router.push(`/strategies/${strategyId}`)
+  }
 
   const handleQuickDeposit = (e: React.MouseEvent, strategy: Strategy) => {
-    e.stopPropagation();
-    setSelectedStrategy(strategy);
-    setDepositDialogOpen(true);
-  };
+    e.stopPropagation()
+    setSelectedStrategy(strategy)
+    setDepositDialogOpen(true)
+  }
 
   return (
     <>
-      
       {/* Mobile View */}
       <div className="block md:hidden space-y-3">
         {strategies.map((strategy) => (
@@ -64,12 +63,9 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold">{strategy.name}</span>
-                      {strategy.isNew && (
-                        <Badge variant="secondary" className="text-xs">New</Badge>
-                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground uppercase mt-0.5">
-                      {strategy.protocol}
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {strategy.protocol} • {strategy.chain}
                     </div>
                   </div>
                 </div>
@@ -88,19 +84,15 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
               <div className="grid grid-cols-3 gap-3 pt-3 border-t">
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">APY</div>
-                  <div className="text-sm font-bold text-foreground">
-                    {strategy.currentApy.toFixed(2)}%
-                  </div>
+                  <div className="text-sm font-bold text-foreground">{strategy.currentApy.toFixed(2)}%</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">TVL</div>
-                  <div className="text-sm font-medium">
-                    ${(strategy.tvlNumeric / 1000000).toFixed(2)}M
-                  </div>
+                  <div className="text-sm font-medium">${(strategy.tvlNumeric / 1000000).toFixed(2)}M</div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Safety</div>
-                  <SafetyScoreDisplay score={strategy.safetyScore} size="sm" />
+                  <SafetyScoreDisplay score={strategy.safetyScore} size="sm" showIcon={false} />
                 </div>
               </div>
             </div>
@@ -108,9 +100,7 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
         ))}
 
         {strategies.length === 0 && (
-          <Card className="p-12 text-center text-muted-foreground">
-            No strategies found matching your filters.
-          </Card>
+          <Card className="p-12 text-center text-muted-foreground">No strategies found matching your filters.</Card>
         )}
       </div>
 
@@ -165,51 +155,36 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold truncate">{strategy.name}</span>
-                    {strategy.isNew && (
-                      <Badge variant="secondary" className="text-xs">New</Badge>
-                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-muted-foreground uppercase">
-                      {strategy.protocol}
-                      {strategy.protocolType && ` (${strategy.protocolType})`}
+                    <span className="text-xs text-muted-foreground">
+                      {strategy.protocol} • {strategy.chain}
                     </span>
                   </div>
                 </div>
               </div>
 
               {/* Deposited */}
-              <div className="text-right text-sm font-medium">
-                {strategy.deposited}
-              </div>
+              <div className="text-right text-sm font-medium">{strategy.deposited}</div>
 
               {/* Current APY */}
               <div className="text-right">
-                <div className="text-sm font-bold text-foreground">
-                  {strategy.currentApy.toFixed(2)}%
-                </div>
+                <div className="text-sm font-bold text-foreground">{strategy.currentApy.toFixed(2)}%</div>
               </div>
 
               {/* TVL */}
               <div className="text-right">
                 <div className="text-sm font-medium">{strategy.tvl}</div>
-                <div className="text-xs text-muted-foreground">
-                  ${(strategy.tvlNumeric / 1000000).toFixed(2)}M
-                </div>
+                <div className="text-xs text-muted-foreground">${(strategy.tvlNumeric / 1000000).toFixed(2)}M</div>
               </div>
 
               {/* Safety Score */}
               <div className="flex justify-end items-center">
-                <SafetyScoreDisplay score={strategy.safetyScore} size="md" />
+                <SafetyScoreDisplay score={strategy.safetyScore} size="md" showIcon={false} />
               </div>
 
               <div className="flex justify-center items-center">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => handleQuickDeposit(e, strategy)}
-                  className="gap-1"
-                >
+                <Button size="sm" variant="outline" onClick={(e) => handleQuickDeposit(e, strategy)} className="gap-1">
                   <Plus className="h-3 w-3" />
                   Deposit
                 </Button>
@@ -220,17 +195,11 @@ export function StrategiesTable({ strategies }: StrategiesTableProps) {
 
         {/* Empty State */}
         {strategies.length === 0 && (
-          <div className="p-12 text-center text-muted-foreground">
-            No strategies found matching your filters.
-          </div>
+          <div className="p-12 text-center text-muted-foreground">No strategies found matching your filters.</div>
         )}
       </Card>
 
-      <QuickDepositDialog
-        open={depositDialogOpen}
-        onOpenChange={setDepositDialogOpen}
-        strategy={selectedStrategy}
-      />
+      <QuickDepositDialog open={depositDialogOpen} onOpenChange={setDepositDialogOpen} strategy={selectedStrategy} />
     </>
-  );
+  )
 }

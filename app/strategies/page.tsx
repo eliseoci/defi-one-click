@@ -10,7 +10,7 @@ import { ConnectWalletButton } from "@/components/wallets/connect-wallet-button"
 import { StrategiesHeader } from "@/components/strategies/strategies-header"
 import { StrategiesFilters } from "@/components/strategies/strategies-filters"
 import { StrategiesTable } from "@/components/strategies/strategies-table"
-import { fetchPools, fetchProtocols, transformPoolToStrategy } from "@/lib/defillama-api"
+import { fetchProtocols, transformPoolToStrategy, getTopPools } from "@/lib/defillama-api"
 import { calcSecurityScore } from "@/lib/calc-security-score"
 
 export default function StrategiesPage() {
@@ -39,14 +39,14 @@ export default function StrategiesPage() {
 
       setLoading(true)
       try {
-        console.log("[v0] Fetching pools from DefiLlama...")
-        const [pools, protocols] = await Promise.all([fetchPools(), fetchProtocols()])
+        console.log("[v0] Fetching top pools from DefiLlama...")
+        const [pools, protocols] = await Promise.all([getTopPools(), fetchProtocols()])
 
         console.log("[v0] Received pools:", pools.length)
 
         // Transform and calculate security scores
         const transformedStrategies = await Promise.all(
-          pools.slice(0, 50).map(async (pool) => {
+          pools.map(async (pool) => {
             const protocol = protocols.find((p) => p.name.toLowerCase() === pool.project.toLowerCase())
             const strategy = transformPoolToStrategy(pool, protocol)
 

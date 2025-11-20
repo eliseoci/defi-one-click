@@ -396,7 +396,25 @@ export default function StrategyDetailPage() {
                   </TabsContent>
 
                   <TabsContent value="withdraw" className="space-y-4 mt-0">
-                    <div className="text-center py-8 text-muted-foreground">No deposits to withdraw</div>
+                    {strategy.deposited > 0 ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Amount to withdraw</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="text-2xl h-14"
+                          />
+                        </div>
+                        <Button className="w-full" size="lg" variant="destructive">
+                          Withdraw
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">No deposits to withdraw</div>
+                    )}
                   </TabsContent>
                 </Tabs>
               </CardContent>

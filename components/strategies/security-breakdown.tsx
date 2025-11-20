@@ -101,15 +101,17 @@ export function SecurityBreakdown({ metrics }: SecurityBreakdownProps) {
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-medium text-sm">{metric.title}</div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`text-xs ${getRatingColor(metric.rating)}`}>
-                      {metric.rating}
-                    </Badge>
-                    {metric.title === "Audit Status" &&
-                      (metrics.hasAudits ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    {metric.title === "Audit Status" ? (
+                      metrics.hasAudits ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500" />
                       ) : (
-                        <XCircle className="h-4 w-4 text-red-500" />
-                      ))}
+                        <XCircle className="h-5 w-5 text-red-500" />
+                      )
+                    ) : (
+                      <Badge variant="outline" className={`text-xs ${getRatingColor(metric.rating)}`}>
+                        {metric.rating}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">{metric.description}</div>

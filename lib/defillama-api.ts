@@ -182,3 +182,15 @@ function formatTVL(tvl: number): string {
   if (tvl >= 1e3) return `$${(tvl / 1e3).toFixed(2)}K`
   return `$${tvl.toFixed(2)}`
 }
+
+async function getTopPoolsByTVL(chain: string, count: number): Promise<Pool[]> {
+  const res = await fetch(`https://yields.llama.fi/pools?chain=${encodeURIComponent(chain)}`)
+  const allPools = (await res.json()).data
+  // Sort pools by TVL descending and take top 'count'
+  return allPools.sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd).slice(0, count)
+}
+
+export async function getTopPools(): Promise<Pool[]> {
+  const [base, arbitrum] = await Promise.all([getTopPoolsByTVL("Base", 3), getTopPoolsByTVL("Arbitrum", 2)])
+  return [...base, ...arbitrum]
+}
