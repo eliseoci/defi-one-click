@@ -40,7 +40,6 @@ export type Pool = {
   apy: number
   rewardTokens: string[]
   pool: string
-  poolAddress?: string
   apyPct1D: number
   apyPct7D: number
   apyPct30D: number
@@ -67,9 +66,13 @@ export type Pool = {
 }
 
 export type HistoricalAPY = {
-  // Define the structure of HistoricalAPY here
-  date: string
+  timestamp: string
   apy: number
+  apyBase: number
+  apyReward: number
+  tvlUsd: number
+  il7d: number | null
+  apyBase7d: number | null
 }
 
 // Fetch all protocols
@@ -153,7 +156,6 @@ export function transformPoolToStrategy(pool: Pool, protocol?: Protocol) {
     name: pool.symbol,
     protocol: pool.project,
     chain: pool.chain,
-    poolAddress: pool.poolAddress,
     currentApy: pool.apy || 0,
     dailyYield: (pool.apy || 0) / 365,
     tvl: formatTVL(pool.tvlUsd),
@@ -183,34 +185,22 @@ function formatTVL(tvl: number): string {
 
 export async function getTopPools(): Promise<Pool[]> {
   try {
-    const response = await fetch(
-      "https://pro-api.llama.fi/436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1/yields/poolsOld?chain=ethereum",
-    )
+    const response = await fetch("http://157.230.251.44:9000/scores?limit=10&tokens=SUSDS")
     if (!response.ok) throw new Error("Failed to fetch pools")
 
+    console.log("[v0] Fetching pools from scores endpoint...")
     const data = await response.json()
-    const allPools = data.data || []
+    console.log("[v0] Scores endpoint response:", data)
 
-    console.log("[v0] All pools fetched:", allPools.length)
+    // The endpoint should return an array of pools with scores
+    const pools = Array.isArray(data) ? data : data.data || []
 
-    const susdsPools = allPools
-      .filter(
-        (pool: Pool) =>
-          pool.chain.toLowerCase() === "ethereum" &&
-          pool.symbol.toLowerCase().includes("susds") &&
-          pool.tvlUsd > 1000000, // TVL > 1M USD
-      )
-      .sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd)
-      .slice(0, 1) // Get only 1 pool
+    console.log("[v0] Total pools received:", pools.length)
 
-    console.log("[v0] Found sUSDS pools:", susdsPools)
-    console.log(
-      "[v0] Pool addresses:",
-      susdsPools.map((p: Pool) => p.poolAddress),
-    )
-    return susdsPools
+    // Return the pools directly since the endpoint already filters for SUSDS
+    return pools
   } catch (error) {
-    console.error("[v0] Error fetching top pools:", error)
+    console.error("[v0] Error fetching pools from scores endpoint:", error)
     return []
   }
 }
