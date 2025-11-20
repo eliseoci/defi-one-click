@@ -31,55 +31,48 @@ export type Protocol = {
 }
 
 export type Pool = {
-  apy: number
-  apyBase: number | null
-  apyBase7d: number | null
-  apyBaseInception: number | null
-  apyMean30d: number
-  apyMeanExpanding: number
-  apyPct1D: number
-  apyPct30D: number
-  apyPct7D: number
-  apyReward: number | null
-  apyStdExpanding: number
   chain: string
-  chain_factorized: number
-  count: number
-  exposure: string
-  il7d: number | null
-  ilRisk: string
-  mu: number
-  outlier: boolean
+  project: string
+  symbol: string
+  tvlUsd: number
+  apyBase: number
+  apyReward: number
+  apy: number
+  rewardTokens: string[]
   pool: string
-  poolAddress: string
-  poolMeta: string | null
-  pool_old: string
+  apyPct1D: number
+  apyPct7D: number
+  apyPct30D: number
+  stablecoin: boolean
+  ilRisk: string
+  exposure: string
   predictions: {
-    binnedConfidence: number
     predictedClass: string
     predictedProbability: number
+    binnedConfidence: number
   }
-  project: string
-  project_factorized: number
-  protocolMeta: string | null
-  return: number
-  rewardTokens: string[] | null
-  securityScore: number
+  poolMeta: string | null
+  mu: number
   sigma: number
-  stablecoin: boolean
-  symbol: string
-  timestamp: string
-  tvlUsd: number
+  count: number
+  outlier: boolean
   underlyingTokens: string[]
-  url: string
-  volumeUsd1d: number | null
-  volumeUsd7d: number | null
+  il7d: number
+  apyBase7d: number
+  apyMean30d: number
+  volumeUsd1d: number
+  volumeUsd7d: number
+  apyBaseInception: number
 }
 
 export type HistoricalAPY = {
-  // Define the HistoricalAPY type here based on expected data structure
-  date: string
+  timestamp: string
   apy: number
+  apyBase: number
+  apyReward: number
+  tvlUsd: number
+  il7d: number | null
+  apyBase7d: number | null
 }
 
 // Fetch all protocols
@@ -156,16 +149,14 @@ export async function fetchTokenData(symbol: string) {
 // Transform pool data to strategy format
 export function transformPoolToStrategy(pool: Pool, protocol?: Protocol) {
   const tokens = pool.underlyingTokens || [pool.symbol]
-  const tokenIcons = tokens.slice(0, 3).map(() => "💎")
+  const tokenIcons = tokens.slice(0, 3).map(() => "💎") // Placeholder, would need token icon mapping
 
   return {
     id: pool.pool,
-    name: `${pool.symbol} - ${pool.project}`,
+    name: pool.symbol,
     protocol: pool.project,
     chain: pool.chain,
-    poolAddress: pool.poolAddress,
     currentApy: pool.apy || 0,
-    apyMean30d: pool.apyMean30d || 0,
     dailyYield: (pool.apy || 0) / 365,
     tvl: formatTVL(pool.tvlUsd),
     tvlNumeric: pool.tvlUsd,
@@ -175,15 +166,13 @@ export function transformPoolToStrategy(pool: Pool, protocol?: Protocol) {
     tokenIcons,
     isNew: false,
     isBoosted: false,
-    audits: protocol?.audits || "Unknown",
+    audits: protocol?.audits || "No audits",
     listedAt: protocol?.listedAt,
-    volume24h: pool.volumeUsd1d || 0,
+    volume24h: pool.volumeUsd1d,
     apyHistory: [],
     underlyingSymbols: tokens,
     rugged: false,
-    safetyScore: pool.securityScore || 0,
-    predictions: pool.predictions,
-    url: pool.url,
+    safetyScore: 0, // Will be calculated
   }
 }
 
@@ -196,20 +185,28 @@ function formatTVL(tvl: number): string {
 
 export async function getTopPools(): Promise<Pool[]> {
   try {
-    const response = await fetch("http://157.230.251.44:9000/scores?limit=10&tokens=SUSDS")
+    const response = await fetch(
+      "https://pro-api.llama.fi/436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1/yields/poolsOld?protocol=sky-lending&symbol=usds",
+    )
     if (!response.ok) throw new Error("Failed to fetch pools")
 
-    console.log("[v0] Fetching pools from scores endpoint...")
-    const result = await response.json()
-    console.log("[v0] Scores endpoint response:", result)
+    const data = await response.json()
+    const allPools = data.data || []
 
-    const pools = result.data || []
+    // Filter and get top 2 from Base and Arbitrum by TVL
+    const basePools = allPools
+      .filter((pool: Pool) => pool.chain.toLowerCase() === "base")
+      .sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd)
+      .slice(0, 2)
 
-    console.log("[v0] Total pools received:", pools.length)
+    const arbitrumPools = allPools
+      .filter((pool: Pool) => pool.chain.toLowerCase() === "arbitrum")
+      .sort((a: Pool, b: Pool) => b.tvlUsd - a.tvlUsd)
+      .slice(0, 2)
 
-    return pools
+    return allPools
   } catch (error) {
-    console.error("[v0] Error fetching pools from scores endpoint:", error)
+    console.error("[v0] Error fetching top pools:", error)
     return []
   }
 }
