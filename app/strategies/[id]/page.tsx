@@ -28,6 +28,7 @@ export default function StrategyDetailPage() {
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
   const [selectedToken, setSelectedToken] = useState<string>("USDC");
+  const [selectedChain, setSelectedChain] = useState<string>("Arbitrum")
   const [amount, setAmount] = useState<string>("");
   const [percentage, setPercentage] = useState<number>(0);
 
@@ -176,6 +177,21 @@ export default function StrategyDetailPage() {
                         <span className="text-lg">{selectedTokenData?.icon}</span>
                         Select token
                       </Label>
+                      <Select value={selectedChain} onValueChange={setSelectedChain}>
+                            <SelectTrigger className="w-auto justify-between min-w-[4rem]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {mockTokens.map((token) => (
+                                <SelectItem key={token.symbol} value={token.symbol}>
+                                  <div className="flex items-center gap-2">
+                                    <span>{token.icon}</span>
+                                    <span>{token.symbol}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                       
                     </div>
 
@@ -241,7 +257,7 @@ export default function StrategyDetailPage() {
 
                     {/* Switch to Chain Button */}
                     <Button className="w-full bg-green-500 hover:bg-green-600 text-white" size="lg">
-                      Switch to {strategy.chain}
+                      Let's go!
                     </Button>
 
                     <Separator />
