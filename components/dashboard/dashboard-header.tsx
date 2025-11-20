@@ -1,6 +1,7 @@
-'use client';
+"use client";
 
-import { useWalletStore } from "@/lib/wallet-store";
+import { useEffect, useState } from "react";
+import { useModal } from "connectkit";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -14,14 +15,22 @@ import { Bell, Wallet, Settings, LogOut, Menu, Zap } from 'lucide-react';
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { Badge } from "@/components/ui/badge";
+import { useAccount, useDisconnect } from "wagmi";
 
 export function DashboardHeader() {
   const router = useRouter();
-  const { connectedAddress, disconnect } = useWalletStore();
+  const { address } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { openProfile } = useModal();
+  const [hydrated, setHydrated] = useState(false);
 
-  const handleDisconnect = () => {
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  const handleDisconnect = async () => {
     disconnect();
-    router.push('/');
+    router.push("/");
   };
 
   const formatAddress = (address: string) => {
@@ -32,24 +41,14 @@ export function DashboardHeader() {
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/strategies" className="flex items-center gap-2">
           <Zap className="h-6 w-6 text-primary" />
           <span className="text-xl font-bold">DeFi Hub</span>
         </Link>
 
-        {/* Navigation */}
         <nav className="hidden items-center gap-6 md:flex">
-          <Link href="/dashboard" className="text-sm font-medium transition-colors hover:text-primary">
-            Dashboard
-          </Link>
-          <Link href="/execute" className="text-sm font-medium transition-colors hover:text-primary">
-            Execute
-          </Link>
-          <Link href="/activity" className="text-sm font-medium transition-colors hover:text-primary">
-            Activity
-          </Link>
-          <Link href="/analytics" className="text-sm font-medium transition-colors hover:text-primary">
-            Analytics
+          <Link href="/strategies" className="text-sm font-medium transition-colors hover:text-primary">
+            Strategies
           </Link>
         </nav>
 
@@ -71,17 +70,17 @@ export function DashboardHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Wallet className="h-4 w-4" />
-                <span className="hidden sm:inline">{formatAddress(connectedAddress!)}</span>
+                <span className="hidden sm:inline">
+                  {hydrated && address ? formatAddress(address) : "Wallet"}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Wallet</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/wallets" className="cursor-pointer">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Manage Wallets
-                </Link>
+              <DropdownMenuItem onClick={openProfile}>
+                <Wallet className="mr-2 h-4 w-4" />
+                Manage Wallets
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
@@ -95,7 +94,6 @@ export function DashboardHeader() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Mobile Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">
@@ -104,16 +102,7 @@ export function DashboardHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem asChild>
-                <Link href="/dashboard" className="cursor-pointer">Dashboard</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/execute" className="cursor-pointer">Execute</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/activity" className="cursor-pointer">Activity</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/analytics" className="cursor-pointer">Analytics</Link>
+                <Link href="/strategies" className="cursor-pointer">Strategies</Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
