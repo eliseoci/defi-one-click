@@ -7,7 +7,9 @@ from datetime import datetime, timezone
 
 app = Flask(__name__)
 
-VERSION = "0.1.8"
+VERSION = "0.2.0"
+POOLS_API_KEY = "436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1"
+POOLS_ENDPOINT = f"https://pro-api.llama.fi/{POOLS_API_KEY}/yields/poolsOld"
 # Keep mock data for testing/debugging purposes
 MOCK_MARKETS = [
     {
@@ -55,7 +57,6 @@ MOCK_MARKETS = [
 ]
 
 DEFILLAMA_PROTOCOLS_URL = "https://api.llama.fi/protocols"
-DEFILLAMA_POOLS_URL = "https://yields.llama.fi/pools"
 
 
 def fetch_defillama_protocols() -> List[Dict]:
@@ -107,11 +108,11 @@ def fetch_defillama_protocols() -> List[Dict]:
 
 def fetch_defillama_pools() -> List[Dict]:
     """
-    Fetch pools data from DefiLlama yields API.
+    Fetch pools data from DefiLlama pro API.
     """
-    print("\n[STEP 2] Starting to fetch pools data from DefiLlama yields API...")
+    print("\n[STEP 2] Starting to fetch pools data from DefiLlama pro API...")
     try:
-        response = requests.get(DEFILLAMA_POOLS_URL, timeout=10)
+        response = requests.get(POOLS_ENDPOINT, timeout=10)
         response.raise_for_status()
         data = response.json()
         
@@ -336,6 +337,7 @@ def scores():
         
         pool_with_score = dict(pool)
         pool_with_score["securityScore"] = security_score
+        pool_with_score["poolAddress"] = pool.get("pool_old") or pool.get("pool")
         
         if protocol:
             pool_with_score["protocolMeta"] = {
