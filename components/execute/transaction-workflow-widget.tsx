@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -122,13 +122,35 @@ export function TransactionWorkflowWidget({
   const [activeStepId, setActiveStepId] = useState<string | null>(null);
   const [executionLog, setExecutionLog] = useState<string[]>([]);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const previousStepsSignature = useRef<string | null>(null);
+
+  const stepsSignature = useMemo(() => {
+    return JSON.stringify(
+      steps.map((step) => ({
+        id: step.id,
+        label: step.label,
+        action: step.action,
+        description: step.description,
+        fromChain: step.fromChain,
+        toChain: step.toChain,
+        tokenIn: step.tokenIn,
+        tokenOut: step.tokenOut,
+        amount: step.amount,
+        metadata: step.metadata ?? null,
+      }))
+    );
+  }, [steps]);
 
   useEffect(() => {
+    if (previousStepsSignature.current === stepsSignature) {
+      return;
+    }
+    previousStepsSignature.current = stepsSignature;
     setStepStates(createInitialState(steps));
     setActiveStepId(null);
     setExecutionLog([]);
     setGlobalError(null);
-  }, [steps]);
+  }, [steps, stepsSignature]);
 
   const completedSteps = useMemo(
     () => steps.filter((step) => stepStates[step.id]?.status === "success").length,
