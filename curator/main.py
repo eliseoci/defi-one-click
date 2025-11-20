@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 import requests
 from typing import List, Dict, Optional
 import math
+from datetime import datetime, timezone
 
 app = Flask(__name__)
 
@@ -330,6 +331,7 @@ def scores():
         "protocolsCount": len(protocols_by_name),
         "limitApplied": pools_limit if pools_limit is not None else "all",
         "version": VERSION,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     })
 
 
