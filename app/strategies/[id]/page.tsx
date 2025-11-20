@@ -367,9 +367,9 @@ export default function StrategyDetailPage() {
                       <div className="text-sm text-muted-foreground mt-1">~$0</div>
                     </div>
 
-                    {/* Switch to Chain Button */}
-                    <Button className="w-full bg-green-500 hover:bg-green-600 text-white" size="lg">
-                      Switch to {strategy.chain}
+                    {/* Deposit Button */}
+                    <Button className="w-full bg-primary hover:bg-primary/90" size="lg">
+                      Deposit
                     </Button>
 
                     <Separator />
@@ -400,16 +400,6 @@ export default function StrategyDetailPage() {
                   </TabsContent>
                 </Tabs>
               </CardContent>
-            </Card>
-
-            {/* Insurance Section */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Insurance</CardTitle>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
             </Card>
           </div>
         </div>
