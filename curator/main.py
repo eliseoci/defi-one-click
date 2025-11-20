@@ -1,5 +1,8 @@
+import os
 from flask import Flask, jsonify, request, Response
 import requests
+
+
 from typing import List, Dict, Optional
 import math
 import re
@@ -9,6 +12,9 @@ app = Flask(__name__)
 
 VERSION = "0.2.0"
 POOLS_API_KEY = os.getenv("POOLS_API_KEY")
+if not POOLS_API_KEY:
+    raise ValueError("POOLS_API_KEY is not set")
+
 POOLS_ENDPOINT = f"https://pro-api.llama.fi/{POOLS_API_KEY}/yields/poolsOld"
 # Keep mock data for testing/debugging purposes
 MOCK_MARKETS = [
