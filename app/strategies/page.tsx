@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useAccount, useWalletClient } from "wagmi";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits, parseUnits, zeroAddress } from "viem";
 import { useRouter } from 'next/navigation';
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,7 +14,10 @@ import { StrategiesFilters } from "@/components/strategies/strategies-filters";
 import { StrategiesTable } from "@/components/strategies/strategies-table";
 import { TransactionWorkflowWidget, type TransactionWorkflowStep, type WalletExecutionProvider } from "@/components/execute/transaction-workflow-widget";
 import { mockStrategies } from "@/lib/mock-data";
-import { ChainType, EVM, convertQuoteToRoute, createConfig, executeRoute, getQuote, type QuoteRequest, type RouteExtended, config as lifiConfig } from "@lifi/sdk";
+import { ChainType as LifiChainType, EVM, convertQuoteToRoute, createConfig, executeRoute, getQuote, type QuoteRequest, type RouteExtended, config as lifiConfig } from "@lifi/sdk";
+import { arbitrum } from "viem/chains";
+import { createLifiWorkflowSteps } from "@/lib/lifi";
+import type { ChainType as SupportedChainType } from "@/lib/types";
 
 const LIFI_INTEGRATOR = "defi-one-click";
 
@@ -24,12 +27,19 @@ createConfig({
 });
 
 const BSC_CHAIN_ID = 56;
+const SRC_CHAIN = arbitrum
+const ARB_CHAIN_ID = SRC_CHAIN.id;
 const ETHEREUM_CHAIN_ID = 1;
 const BSC_USDT_ADDRESS = "0x55d398326f99059fF775485246999027B3197955";
 const ETH_NATIVE_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ETH_USDC_ADDRESS = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+const ARB_USDT_ADDRESS = "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9";
+const ARB_USDC_ADDRESS = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 const BSC_USDT_DEC = 18
-const FROM_AMOUNT = 1
+const FROM_AMOUNT = 0.0001
+const SOURCE_CHAIN_TYPE: SupportedChainType = "arbitrum";
+const DESTINATION_CHAIN_TYPE: SupportedChainType = "arbitrum";
+const DEFAULT_LIFI_SLIPPAGE = 0.003;
 
 const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
   {
@@ -37,16 +47,16 @@ const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
     label: "Fetch LI.FI Route",
     action: "swap",
     description: "Request the best LI.FI route to move 1,000 USDT on BNB Chain to ETH on Ethereum.",
-    fromChain: "bsc",
-    toChain: "ethereum",
-    tokenIn: "USDT",
-    tokenOut: "ETH",
+    fromChain: "arbitrum",
+    toChain: "arbitrum",
+    tokenIn: "ETH",
+    tokenOut: "USDT",
     amount: FROM_AMOUNT,
     metadata: {
-      fromChainId: BSC_CHAIN_ID,
-      toChainId: ETHEREUM_CHAIN_ID,
-      fromTokenAddress: BSC_USDT_ADDRESS,
-      toTokenAddress: ETH_USDC_ADDRESS,
+      fromChainId: SRC_CHAIN.id,
+      toChainId: arbitrum.id,
+      fromTokenAddress: zeroAddress,
+      toTokenAddress: ARB_USDT_ADDRESS,
       decimals: BSC_USDT_DEC,
       fromAmount: parseUnits(`${FROM_AMOUNT}`, BSC_USDT_DEC).toString(),
     },
@@ -60,7 +70,7 @@ const TEST_LIFI_STEPS: TransactionWorkflowStep[] = [
     toChain: "ethereum",
     tokenIn: "USDT",
     tokenOut: "ETH",
-    amount: FROM_AMOUNT,
+    amount: 0.0000000001,
     metadata: {
       needsQuote: true,
       routeDescription: "Cross-chain swap via LI.FI smart routing",
@@ -106,16 +116,47 @@ export default function StrategiesPage() {
 
     return () => {
       const remainingProviders =
-        lifiConfig.get().providers?.filter((p) => p.type !== ChainType.EVM) ?? [];
+        lifiConfig.get().providers?.filter((p) => p.type !== LifiChainType.EVM) ?? [];
       if (remainingProviders.length) {
         lifiConfig.setProviders(remainingProviders);
       }
     };
   }, [activeWalletClient]);
 
+  const [lifiSteps, setLifiSteps] = useState<TransactionWorkflowStep[]>(TEST_LIFI_STEPS);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const buildSteps = async () => {
+      try {
+        const steps = await createLifiWorkflowSteps({
+          sourceChain: SOURCE_CHAIN_TYPE,
+          sourceTokenAddress: zeroAddress,
+          fromAmount: FROM_AMOUNT,
+          destinationChain: DESTINATION_CHAIN_TYPE,
+          destinationTokenAddress: ARB_USDC_ADDRESS,
+          slippage: DEFAULT_LIFI_SLIPPAGE,
+        });
+
+        if (isMounted) {
+          setLifiSteps(steps);
+        }
+      } catch (error) {
+        console.error("Failed to construct LI.FI workflow steps", error);
+      }
+    };
+
+    void buildSteps();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const transactionWorkflowSteps = useMemo<TransactionWorkflowStep[]>(() => {
     if (!activeWalletClient || !activeWalletClient.account) {
-      return TEST_LIFI_STEPS;
+      return lifiSteps;
     }
 
     let cachedRoute: RouteExtended | null = null;
@@ -130,7 +171,7 @@ export default function StrategiesPage() {
       }
     };
 
-    return TEST_LIFI_STEPS.map((step) => {
+    return lifiSteps.map((step) => {
       if (step.id === "lifi-get-quote") {
         return {
           ...step,
@@ -140,6 +181,8 @@ export default function StrategiesPage() {
             const fromAmount =
               metadata.fromAmount ??
               parseUnits((currentStep.amount ?? 0).toString(), decimals).toString();
+            const slippage =
+              typeof metadata.slippage === "number" ? metadata.slippage : DEFAULT_LIFI_SLIPPAGE;
 
             const quoteRequest: QuoteRequest = {
               fromChain: metadata.fromChainId ?? BSC_CHAIN_ID,
@@ -149,6 +192,7 @@ export default function StrategiesPage() {
               fromAddress: activeWalletClient.account.address,
               toAddress: activeWalletClient.account.address,
               fromAmount,
+              slippage,
             };
 
             const quote = await getQuote(quoteRequest);
@@ -222,7 +266,7 @@ export default function StrategiesPage() {
 
       return step;
     });
-  }, [activeWalletClient]);
+  }, [activeWalletClient, lifiSteps]);
 
   const walletExecutionProvider = useMemo<WalletExecutionProvider | null>(() => {
     if (!activeWalletClient || !activeWalletClient.account) {
@@ -236,7 +280,7 @@ export default function StrategiesPage() {
       name: `Wallet ${shortAddress}`,
       async executeStep(step) {
         // Query the connected wallet's chain to prove we are talking to the wallet provider
-        const chainIdHex = await activeWalletClient.transport.request({ method: "eth_chainId" });
+        const chainIdHex = await activeWalletClient?.transport.request({ method: "eth_chainId" });
         const chainId = Number.parseInt(String(chainIdHex), 16);
 
         // TODO: Replace this mock delay with actual contract calls per step
