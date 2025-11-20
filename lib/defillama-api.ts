@@ -186,7 +186,7 @@ function formatTVL(tvl: number): string {
 export async function getTopPools(): Promise<Pool[]> {
   try {
     const response = await fetch(
-      "https://pro-api.llama.fi/436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1/yields/poolsOld?chain=ethereum&protocol=sky-lending&symbol=usds",
+      "https://pro-api.llama.fi/436bdb4b6a8ce3de2e703a424249c04a7833f2f23313d98f4afe6bc0ac4b20f1/yields/poolsOld?chain=ethereum&protocol=sky-lending&symbol=usds&limit=10",
     )
     if (!response.ok) throw new Error("Failed to fetch pools")
 
